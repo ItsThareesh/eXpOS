@@ -1,0 +1,29 @@
+// blocks 7-8 in disk are mapped to INIT code... so load it to page 65-66 in the memory
+// this has been mentioned clearly in the xsm memory layout
+loadi(65,7);
+loadi(66,8);
+
+// interrupt 10 is stored in blocks 35-36
+loadi(22,35);
+loadi(23,36);
+
+// load exception routine handler from blocks 15-16
+loadi(2, 15);
+loadi(3, 16);
+
+// INIT is a user process and all address are virtual
+// so we need to setup a page table as well explicitly
+PTBR = PAGE_TABLE_BASE;
+PTLR = 3;
+
+[PTBR+0] = 65;
+[PTBR+1] = "0100";
+[PTBR+2] = 66;
+[PTBR+3] = "0100";
+[PTBR+4] = 76;
+[PTBR+5] = "0110";
+
+[76*512] = 0;
+SP = 2*512;
+
+ireturn;

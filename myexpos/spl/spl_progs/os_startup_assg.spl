@@ -1,0 +1,35 @@
+// Load INIT code from block 7-8 in disk to pages 65-66 in memory
+loadi(65, 7);
+loadi(66, 8);
+
+// Load INT=10 handler from block 35-36 in disk to pages 22-23 in memory
+loadi(22, 35);
+loadi(23, 36);
+
+// Load exception handler from block 15-16 in disk to pages 2-3 in memory
+loadi(2, 15);
+loadi(3, 16);
+
+// Setup Page Table
+PTBR = PAGE_TABLE_BASE;
+PTLR = 9;
+
+// Logical Page 4 maps to Physical Page 65
+[PTBR + 8]  = 65;
+[PTBR + 9]  = "0100";
+
+// Logical Page 5 maps to Physical Page 66
+[PTBR + 10] = 66;
+[PTBR + 11] = "0100";
+
+// Logical Page 8 maps to Physical Page 76 (Stack)
+[PTBR + 16] = 76;
+[PTBR + 17] = "0110";
+
+[76 * 512] = 4*512; // Set physical addr. 76*512 to point to 2048. 
+// So stack pointer points to this logical page 4's location mapping to physical page 65
+
+// Value of stack pointer is read in user mode and not kernel mode
+SP = 8 * 512; // Stack pointer will now point to logical page 8's starting
+
+ireturn;
