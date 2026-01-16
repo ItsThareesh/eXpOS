@@ -6,6 +6,10 @@ loadi(64,14);
 loadi(65,7);
 loadi(66,8);
 
+// Load timer as well from block 17-18 to page 4 and 5
+loadi(4,17);
+loadi(5,18);
+
 // Load the INT10 module from the disk to the memory
 loadi(22,35);
 loadi(23,36);
