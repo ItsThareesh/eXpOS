@@ -2,7 +2,13 @@
 SP = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 11] * 512 - 1;
 
 backup;
-print "TIMER";
+
+alias pid R0;
+R0 = [SYSTEM_STATUS_TABLE + 1];
+
+print "----------------------";
+print "Current PID: ";
+print pid;
 
 restore;
 SP = [PROCESS_TABLE + ( [SYSTEM_STATUS_TABLE + 1] * 16) + 13];
