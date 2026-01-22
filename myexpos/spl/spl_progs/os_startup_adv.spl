@@ -18,6 +18,10 @@ loadi(23,36);
 loadi(2, 15);
 loadi(3, 16);
 
+// Load the INT7 module from disk to memory
+loadi(16,29);
+loadi(17,30);
+
 PTBR = PAGE_TABLE_BASE;
 PTLR = 10;
 
