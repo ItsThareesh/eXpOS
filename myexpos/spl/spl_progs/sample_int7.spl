@@ -34,13 +34,22 @@ else
     // userSP - 3 gives logical addr. of Argument 2
     // print the value found at the physical memory location obtained by converting logical addr. of (userSP - 3)
     word = [[PTBR + 2 * ((userSP - 3) / 512)] * 512 + ((userSP - 3) % 512)];
-
-    print word;
+    
+    if (word % 5 != 0)
+    then
+        print word;
+    endif;
 
     // set the value at the return address to 0
     alias physicalAddrRetVal R6;
     physicalAddrRetVal = ([PTBR + 2 * (userSP - 1)/ 512] * 512) + ((userSP - 1) % 512);
-    [physicalAddrRetVal] = 0;
+
+    if (word % 5 == 0)
+    then
+        [physicalAddrRetVal] = -1;
+    else
+        [physicalAddrRetVal] = 0;
+    endif;
 endif;
 
 SP = userSP;
