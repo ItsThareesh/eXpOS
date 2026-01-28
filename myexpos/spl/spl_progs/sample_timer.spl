@@ -6,8 +6,7 @@ backup;
 alias pid R0;
 R0 = [SYSTEM_STATUS_TABLE + 1];
 
-print "----------------------";
-print "Current PID: ";
+print "PID: ";
 print pid;
 
 restore;
