@@ -1,0 +1,8 @@
+load --library $HOME/myexpos/expl/library.lib
+load --os $HOME/myexpos/spl/spl_progs/stage12/os_startup_assg1.xsm
+load --idle $HOME/myexpos/expl/samples/stage12/idle.xsm
+load --init $HOME/myexpos/expl/samples/stage12/assg1.xsm
+load --int=timer $HOME/myexpos/spl/spl_progs/stage12/timer.xsm
+load --int=7 $HOME/myexpos/spl/spl_progs/sample_int7.xsm
+load --int=10 $HOME/myexpos/spl/spl_progs/stage12/int10.xsm
+load --exhandler $HOME/myexpos/spl/spl_progs/haltprog.xsm
