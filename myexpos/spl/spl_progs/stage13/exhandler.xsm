@@ -1,0 +1,5 @@
+MOV R16, "Exception"
+PORT P1, R16
+OUT
+HALT
+HALT
