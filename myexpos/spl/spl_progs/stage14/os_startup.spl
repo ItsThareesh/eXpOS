@@ -2,10 +2,6 @@
 loadi(54,67);
 loadi(55,68);
 
-// Load Module 5 (Scheduler Module) from disk to memory
-loadi(50,63);
-loadi(51,64);
-
 // Load the IDLE Program Code from disk to memory
 loadi(69,11);
 loadi(70,12);

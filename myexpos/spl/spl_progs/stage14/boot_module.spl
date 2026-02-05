@@ -25,6 +25,10 @@ loadi(66,8);
 // Load evennos program from disk to memory
 loadi(86,69); // on dumping inodeusertable, evennos is at block 69
 
+// Load SCHEDULER (Module 5)
+loadi(50,63);
+loadi(51,64);
+
 // Set all other processes to TERMINATED state
 alias count R0;
 count = 0;

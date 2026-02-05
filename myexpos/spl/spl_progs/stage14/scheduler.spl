@@ -8,13 +8,13 @@ multipush(BP);
 alias process_table_entry R1;
 process_table_entry = PROCESS_TABLE + (currentPID * 16);
 
-// Set the state of the current process to READY
-[process_table_entry + 4] = READY;
-
 // Save context of current process in Process Table
 [process_table_entry + 12] = SP % 512;
 [process_table_entry + 14] = PTBR;
 [process_table_entry + 15] = PTLR;
+
+// Set the state of the current process to READY
+[process_table_entry + 4] = READY;
 
 // Find the next process to schedule
 alias idx R2;
@@ -39,6 +39,7 @@ endwhile;
 alias new_process_table_entry R4;
 new_process_table_entry = PROCESS_TABLE + (newPID * 16);
 
+// Set back the kernel stack pointer and page table registers
 SP = [new_process_table_entry + 11] * 512 + [new_process_table_entry + 12];
 PTBR = [new_process_table_entry + 14];
 PTLR = [new_process_table_entry + 15]; 
@@ -48,7 +49,7 @@ PTLR = [new_process_table_entry + 15];
 // If process is in CREATED state, set it to RUNNING
 if ([new_process_table_entry + 4] == CREATED) then
     [new_process_table_entry + 4] = RUNNING;
-    [new_process_table_entry + 9] = 0;
+    [new_process_table_entry + 9] = 0; // Set Mode Flag to zero
     SP = [new_process_table_entry + 13];
     ireturn;
 endif;
