@@ -6,6 +6,7 @@ loadi(70,12);
 loadi(54,67);
 loadi(55,68);
 
+// Kernel Stack is in UserArea (Page 82 in memory)
 SP = 82 * 512 - 1;
 
 call BOOT_MODULE;
@@ -15,19 +16,19 @@ call BOOT_MODULE;
 PTBR = PAGE_TABLE_BASE;
 PTLR = 10;
 
-//Library
-[PTBR+0] = 63;
+//Library (Not Used in IDLE, but we can keep it unmapped as well)
+[PTBR+0] = -1;
 [PTBR+1] = "0100";
-[PTBR+2] = 64;
+[PTBR+2] = -1;
 [PTBR+3] = "0100";
 
-//Heap
+// Heap (Not Used in IDLE, but we can keep it unmapped as well)
 [PTBR+4] = -1;
 [PTBR+5] = "0000";
 [PTBR+6] = -1;
 [PTBR+7] = "0000";
 
-//Code
+// Code
 [PTBR+8] = 69;
 [PTBR+9] = "0100";
 [PTBR+10] = 70;
@@ -37,7 +38,7 @@ PTLR = 10;
 [PTBR+14] = -1;
 [PTBR+15] = "0000";
 
-//Stack
+// Stack (1 page for now, we can keep the second page unmapped)
 [PTBR+16] = 81;
 [PTBR+17] = "0110";
 [PTBR+18] = -1;

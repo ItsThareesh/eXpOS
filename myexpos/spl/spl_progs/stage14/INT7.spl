@@ -1,0 +1,53 @@
+// Set the MODE FLAG field in the process table to the system call number which is 5 for write system call
+[PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 9] = 5;
+
+// Store the value of user SP in a register as we need it for further computations
+alias userSP R0;
+userSP = SP;
+ 
+[PROCESS_TABLE + ( [SYSTEM_STATUS_TABLE + 1] * 16) + 13] = SP; // Save the value of SP in the user SP field of Process Table entry of the process.
+SP = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 11] * 512 - 1; // Set the value of SP to beginning of the kernel stack.
+
+alias physicalPageNum R1;
+alias offset R2;
+alias fileDescPhysicalAddr R3;
+
+// userSP - 4 is the logical addr. of the argument 1
+// (userSP - 4)/512 gives the logical page number... add it to the PTBR base addr to get the physical page number
+physicalPageNum = [PTBR + 2 * ((userSP - 4)/ 512)];
+offset = (userSP - 4) % 512;
+
+fileDescPhysicalAddr = (physicalPageNum * 512) + offset;
+
+alias fileDescriptor R4;
+fileDescriptor=[fileDescPhysicalAddr];
+
+if (fileDescriptor != -2)
+then
+    // same calculation like above, logical addr. of return value is userSP - 1
+    // so calcualte logical page number, apply calculations to find physical page number add the offset to the former value
+    // set the value -1 to the physical memory location calculated
+    alias physicalAddrRetVal R5;
+    physicalAddrRetVal = ([PTBR + 2 * ((userSP - 1) / 512)] * 512) + ((userSP - 1) % 512);
+    [physicalAddrRetVal] = -1;
+else
+	alias word R5;
+    // userSP - 3 gives logical addr. of Argument 2
+    // print the value found at the physical memory location obtained by converting logical addr. of (userSP - 3)
+    word = [[PTBR + 2 * ((userSP - 3) / 512)] * 512 + ((userSP - 3) % 512)];
+    
+    print word;
+
+    // set the value at the return address to 0
+    alias physicalAddrRetVal R6;
+    physicalAddrRetVal = ([PTBR + 2 * (userSP - 1)/ 512] * 512) + ((userSP - 1) % 512);
+
+    [physicalAddrRetVal] = 0;
+endif;
+
+SP = userSP;
+
+// Reset the MODE FLAG field in the process table to 0 
+[PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 9] = 0;
+
+ireturn;
