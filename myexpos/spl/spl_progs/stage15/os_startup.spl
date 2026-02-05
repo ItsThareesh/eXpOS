@@ -1,0 +1,69 @@
+// Load SCHEDULER (Module 5)
+loadi(50,63);
+loadi(51,64);
+
+// Load Module 7 (Boot Module) from disk to memory
+loadi(54,67);
+loadi(55,68);
+
+// Load the IDLE Program Code from disk to memory
+loadi(69,11);
+loadi(70,12);
+
+// Set Kernel Stack to User Area (Page 82 in memory)
+SP = 82 * 512 - 1;
+
+call BOOT_MODULE;
+
+// ------------ IDLE PROGRAM ------------
+
+PTBR = PAGE_TABLE_BASE;
+PTLR = 10;
+
+//Library (Not Used in IDLE, but we can keep it unmapped as well)
+[PTBR+0] = -1;
+[PTBR+1] = "0100";
+[PTBR+2] = -1;
+[PTBR+3] = "0100";
+
+// Heap (Not Used in IDLE, but we can keep it unmapped as well)
+[PTBR+4] = -1;
+[PTBR+5] = "0000";
+[PTBR+6] = -1;
+[PTBR+7] = "0000";
+
+// Code
+[PTBR+8] = 69;
+[PTBR+9] = "0100";
+[PTBR+10] = 70;
+[PTBR+11] = "0100";
+[PTBR+12] = -1;
+[PTBR+13] = "0000";
+[PTBR+14] = -1;
+[PTBR+15] = "0000";
+
+// Stack (1 page for now, we can keep the second page unmapped)
+[PTBR+16] = 81;
+[PTBR+17] = "0110";
+[PTBR+18] = -1;
+[PTBR+19] = "0000";
+
+// Setting up process table for IDLE
+[PROCESS_TABLE + 1] = 0;
+[PROCESS_TABLE + 4] = RUNNING;
+[PROCESS_TABLE + 11] = 82; // UserArea Page No.
+[PROCESS_TABLE + 12] = 0; // KPTR
+[PROCESS_TABLE + 13] = 8 * 512; // UPTR
+[PROCESS_TABLE + 14] = PTBR;
+[PROCESS_TABLE + 15] = PTLR;
+
+// Load the first instruction into idle program stack
+[81*512] = [69*512 + 1];
+
+// Maps to address 76 in physical memory (page 8 in virtual memory)
+SP = 8*512;
+
+// Set Current PID to 0 (IDLE)
+[SYSTEM_STATUS_TABLE + 1] = 0;
+
+ireturn;

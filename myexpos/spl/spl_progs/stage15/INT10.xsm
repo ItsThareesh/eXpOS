@@ -36,6 +36,7 @@ JZ R16, _L5
 MOV R16, "Quitting"
 PORT P1, R16
 OUT
+BRKP
 HALT
 JMP _L6
 _L5:

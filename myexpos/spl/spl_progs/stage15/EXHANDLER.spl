@@ -1,0 +1,6 @@
+alias errorPID R0;
+errorPID = [SYSTEM_STATUS_TABLE + 1];
+
+print "Exception in PID:";
+print errorPID;
+halt;

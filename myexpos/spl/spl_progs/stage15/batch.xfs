@@ -1,0 +1,14 @@
+fdisk
+load --exec $HOME/myexpos/expl/samples/stage14/oddnos.xsm
+load --int=timer $HOME/myexpos/spl/spl_progs/stage15/TIMER.xsm
+load --int=7 $HOME/myexpos/spl/spl_progs/stage15/INT7.xsm
+load --int=10 $HOME/myexpos/spl/spl_progs/stage15/INT10.xsm
+load --exhandler $HOME/myexpos/spl/spl_progs/stage15/EXHANDLER.xsm
+load --module 7 $HOME/myexpos/spl/spl_progs/stage15/boot_module.xsm
+load --module 5 $HOME/myexpos/spl/spl_progs/stage15/scheduler.xsm
+load --module 0 $HOME/myexpos/spl/spl_progs/stage15/MOD0.xsm
+load --module 4 $HOME/myexpos/spl/spl_progs/stage15/MOD4.xsm
+load --os $HOME/myexpos/spl/spl_progs/stage15/os_startup.xsm
+load --library $HOME/myexpos/expl/library.lib
+load --idle $HOME/myexpos/expl/samples/idle.xsm
+load --init $HOME/myexpos/expl/samples/stage14/evennos.xsm
