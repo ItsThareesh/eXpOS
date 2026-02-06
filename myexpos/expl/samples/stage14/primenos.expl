@@ -1,0 +1,28 @@
+int main()
+{
+    decl 
+        int n, isprime , temp, i;
+    enddecl
+
+    begin
+        n = 2;
+        while (n < 100) do 
+            isprime = 1;
+            i = 2;
+            
+            while((i*i) <= n) do 
+                if((n%i) == 0) then
+                    isprime = 0;
+                    break;
+                endif;
+                i = i + 1;
+            endwhile;
+            
+            if((isprime) == 1) then
+                temp = exposcall("Write", -2 , n);
+            endif;
+            n = n + 1;
+        endwhile;
+        return 0;
+    end
+}
