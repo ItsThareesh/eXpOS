@@ -43,7 +43,7 @@ PTLR = [new_process_table_entry + 15];
 
 [SYSTEM_STATUS_TABLE + 1] = newPID;
 
-// If process is in CREATED state, set it to RUNNING
+// If process is in CREATED state, then don't restore context. Just return to user program directly.
 if ([new_process_table_entry + 4] == CREATED) then
     [new_process_table_entry + 4] = RUNNING;
     [new_process_table_entry + 9] = 0; // Set Mode Flag to zero
