@@ -3,6 +3,9 @@ SP = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 11] * 512 - 1;
 
 backup;
 
+// Change the state of the current process from RUNNING to READY
+[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 4] = READY;
+
 call SCHEDULER;
 
 restore;
