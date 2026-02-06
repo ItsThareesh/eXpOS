@@ -35,6 +35,8 @@ else
     // userSP - 3 gives logical addr. of Argument 2
     // print the value found at the physical memory location obtained by converting logical addr. of (userSP - 3)
     word = [[PTBR + 2 * ((userSP - 3) / 512)] * 512 + ((userSP - 3) % 512)];
+
+    breakpoint;
     
     print word;
 

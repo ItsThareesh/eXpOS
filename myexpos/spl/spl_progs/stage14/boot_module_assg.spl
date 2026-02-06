@@ -49,7 +49,7 @@ endwhile;
 
 // ------------ INIT PROGRAM (ODD NOS) ------------
 
-PTBR = PAGE_TABLE_BASE+20;
+PTBR = PAGE_TABLE_BASE+40;
 PTLR = 10;
 
 // Library
@@ -84,17 +84,17 @@ PTLR = 10;
 [76 * 512] = [65 * 512 + 1];
 
 // Setting up process table for INIT (16 offset)
-[PROCESS_TABLE + 16 + 1] = 2;
-[PROCESS_TABLE + 16 + 4] = CREATED;
-[PROCESS_TABLE + 16 + 11] = 80; // UserArea Page No.
-[PROCESS_TABLE + 16 + 12] = 0; // KPTR
-[PROCESS_TABLE + 16 + 13] = 8 * 512; // UPTR
-[PROCESS_TABLE + 16 + 14] = PTBR;
-[PROCESS_TABLE + 16 + 15] = PTLR;
+[PROCESS_TABLE + 32 + 1] = 2;
+[PROCESS_TABLE + 32 + 4] = CREATED;
+[PROCESS_TABLE + 32 + 11] = 80; // UserArea Page No.
+[PROCESS_TABLE + 32 + 12] = 0; // KPTR
+[PROCESS_TABLE + 32 + 13] = 8 * 512; // UPTR
+[PROCESS_TABLE + 32 + 14] = PTBR;
+[PROCESS_TABLE + 32 + 15] = PTLR;
 
 // ------------ EVENNOS PROGRAM ------------
 
-PTBR = PAGE_TABLE_BASE+40;
+PTBR = PAGE_TABLE_BASE+20;
 PTLR = 10;
 
 // Library (same, since only address mapping happens)
@@ -129,13 +129,13 @@ PTLR = 10;
 [87 * 512] = [86 * 512 + 1];
 
 // Setting up process table for EVENNOS (32 offset)
-[PROCESS_TABLE + 32 + 1] = 1;
-[PROCESS_TABLE + 32 + 4] = CREATED;
-[PROCESS_TABLE + 32 + 11] = 89; // UserArea Page No
-[PROCESS_TABLE + 32 + 12] = 0; // KPTR
-[PROCESS_TABLE + 32 + 13] = 8 * 512; // UPTR
-[PROCESS_TABLE + 32 + 14] = PTBR;
-[PROCESS_TABLE + 32 + 15] = PTLR;
+[PROCESS_TABLE + 16 + 1] = 1;
+[PROCESS_TABLE + 16 + 4] = CREATED;
+[PROCESS_TABLE + 16 + 11] = 89; // UserArea Page No
+[PROCESS_TABLE + 16 + 12] = 0; // KPTR
+[PROCESS_TABLE + 16 + 13] = 8 * 512; // UPTR
+[PROCESS_TABLE + 16 + 14] = PTBR;
+[PROCESS_TABLE + 16 + 15] = PTLR;
 
 
 //------------ PRIME PROGRAM ------------
