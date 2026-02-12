@@ -1,0 +1,45 @@
+decl
+    int euclideangcd(int a, int b);
+enddecl
+
+int euclideangcd (int a, int b) {
+    decl
+        int answer;
+    enddecl
+    begin
+        if (b == 0) then
+            answer = a;
+        else
+            answer = euclideangcd(b, a % b);
+        endif;
+
+        return answer;
+    end
+}
+
+int main() {
+    decl
+        int a, b, temp, gcd;
+    enddecl
+    begin
+        temp = exposcall("Write", -2, "Input A:");
+        temp = exposcall("Read", -1, a);
+
+        temp = exposcall("Write", -2, "Input B:");
+        temp = exposcall("Read", -1, b);
+
+        // Ensure that a is always greater than b
+        if (a < b) then
+            temp = a;
+            a = b;
+            b = temp;
+        endif;
+
+        gcd = euclideangcd(a, b);
+
+        temp = exposcall("Write", -2, "GCD is: ");
+        temp = exposcall("Write", -2, gcd);
+
+        return 0;
+    end
+}
