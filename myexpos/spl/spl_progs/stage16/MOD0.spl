@@ -1,0 +1,44 @@
+// RESOURCE_MANAGER
+
+alias functionNum R1;
+alias currentPID R2;
+
+// Terminal Acquire
+if (functionNum == 8) then
+    while ([TERMINAL_STATUS_TABLE + 0] == 1) do
+        // Change the state of the current process to WAIT_TERMINAL
+        [PROCESS_TABLE + 16*[SYSTEM_STATUS_TABLE+1] + 4] = WAIT_TERMINAL;
+
+        multipush(R1, R2);
+        call SCHEDULER;
+        multipop(R1, R2);
+    endwhile;
+
+    [TERMINAL_STATUS_TABLE + 0] = 1;
+    [TERMINAL_STATUS_TABLE + 1] = currentPID;
+    breakpoint;
+    return;
+endif;
+
+// Terminal Release
+if (functionNum == 9) then
+    if (currentPID != [TERMINAL_STATUS_TABLE + 1]) then
+        R0 = -1;
+        return;
+    endif;
+
+    [TERMINAL_STATUS_TABLE + 0] = 0;
+
+    alias idx R3;
+    idx = 1;
+    while (idx < 16) do
+        if ([PROCESS_TABLE + (16 * idx) + 4] == WAIT_TERMINAL) then
+            [PROCESS_TABLE + (16 * idx) + 4] = READY;
+        endif;
+        idx = idx + 1;
+    endwhile;
+
+    R0 = 0;
+    breakpoint;
+    return;
+endif;
