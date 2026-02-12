@@ -1,0 +1,24 @@
+#!/bin/bash
+set -euo pipefail
+
+# Check arguments
+if [ "$#" -ne 2 ]; then
+    echo "Usage: runxfs <stage_folder> <filename>"
+    exit 1
+fi
+
+BASE_DIR="$HOME/myexpos"
+STAGE=$1
+FILE=$2
+
+FILE_PATH="$BASE_DIR/spl/spl_progs/$STAGE/$FILE"
+XFS_EXEC="$BASE_DIR/xfs-interface/xfs-interface"
+
+# Validate file exists
+if [ ! -f "$FILE_PATH" ]; then
+    echo "Error: File not found -> $FILE_PATH"
+    exit 1
+fi
+
+# Execute
+"$XFS_EXEC" run "$FILE_PATH"

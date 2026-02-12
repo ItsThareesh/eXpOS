@@ -1,0 +1,38 @@
+#!/bin/bash
+set -euo pipefail
+
+if [ "$#" -ne 1 ]; then
+    echo "Usage: compile_spl <stage_folder>"
+    exit 1
+fi
+
+BASE_DIR="$HOME/myexpos"
+STAGE="$1"
+
+SPL_DIR="$BASE_DIR/spl"
+TARGET_DIR="$SPL_DIR/spl_progs/$STAGE"
+
+# Validate folder exists
+if [ ! -d "$TARGET_DIR" ]; then
+    echo "Error: Folder not found -> $TARGET_DIR"
+    exit 1
+fi
+
+cd "$SPL_DIR"
+
+found=false
+
+echo "Compiling all .spl files in $TARGET_DIR"
+echo "-----------------------------------------"
+
+for file in "$TARGET_DIR"/*.spl; do
+    if [ -f "$file" ]; then
+        found=true
+        echo "Compiling: $(basename "$file")"
+        ./spl "$file"
+    fi
+done
+
+if [ "$found" = false ]; then
+    echo "No .spl files found in $TARGET_DIR"
+fi
