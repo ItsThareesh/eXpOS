@@ -20,5 +20,9 @@ if [ ! -f "$FILE_PATH" ]; then
     exit 1
 fi
 
+cd "$BASE_DIR/xfs-interface"
+
+echo "Running XFS on: $FILE_PATH"
+
 # Execute
 "$XFS_EXEC" run "$FILE_PATH"
