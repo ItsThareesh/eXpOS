@@ -5,7 +5,7 @@ load --int=7 $HOME/myexpos/spl/spl_progs/stage16/INT7.xsm
 load --int=10 $HOME/myexpos/spl/spl_progs/stage16/INT10.xsm
 load --int=console $HOME/myexpos/spl/spl_progs/stage16/console_modified.xsm
 load --exhandler $HOME/myexpos/spl/spl_progs/stage16/EXHANDLER.xsm
-load --module 7 $HOME/myexpos/spl/spl_progs/stage16/boot_module.xsm
+load --module 7 $HOME/myexpos/spl/spl_progs/stage16/boot_module_modified.xsm
 load --module 5 $HOME/myexpos/spl/spl_progs/stage16/scheduler.xsm
 load --module 0 $HOME/myexpos/spl/spl_progs/stage16/MOD0.xsm
 load --module 4 $HOME/myexpos/spl/spl_progs/stage16/MOD4.xsm
@@ -13,3 +13,4 @@ load --os $HOME/myexpos/spl/spl_progs/stage16/os_startup.xsm
 load --library $HOME/myexpos/expl/library.lib
 load --idle $HOME/myexpos/expl/samples/idle.xsm
 load --init $HOME/myexpos/expl/samples/stage16/gcd.xsm
+load --exec $HOME/myexpos/expl/samples/stage16/bblsort.xsm

@@ -12,24 +12,7 @@ reqPID = [TERMINAL_STATUS_TABLE + 1];
 // Copy the value present in P0 into the input buffer field of the process table
 [PROCESS_TABLE + (reqPID * 16) + 8] = P0;
 
-// ---- START OF Release Call to RESOURCE_MANAGER ----
-
-// Call Release Terminal
-// multipush(R0);
-// R1 = 9;
-// R2 = reqPID;
-// call RESOURCE_MANAGER;
-// multipop(R0);
-
-// ---- END OF Release Call to RESOURCE_MANAGER ----
-
 // ---- START OF Code copied from MOD0 ----
-breakpoint;
-
-// if (reqPID != [TERMINAL_STATUS_TABLE + 1]) then
-//    R3 = -1;
-//    return;
-// endif;
 
 [TERMINAL_STATUS_TABLE + 0] = 0;
 
@@ -42,9 +25,6 @@ while (idx < 16) do
     idx = idx + 1;
 endwhile;
 
-R3 = 0;
-
-breakpoint;
 // ---- END OF Code copied from MOD0 ----
 
 restore;
