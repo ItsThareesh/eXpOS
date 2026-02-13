@@ -9,8 +9,12 @@ backup;
 alias reqPID R0;
 reqPID = [TERMINAL_STATUS_TABLE + 1];
 
+breakpoint;
+
 // Copy the value present in P0 into the input buffer field of the process table
 [PROCESS_TABLE + (reqPID * 16) + 8] = P0;
+
+breakpoint;
 
 // Call Release Terminal
 multipush(R0);
