@@ -1,7 +1,0 @@
-*~
-.DS_Store
-*.json
-*.o
-.vscode*
-lex.yy.c
-mem

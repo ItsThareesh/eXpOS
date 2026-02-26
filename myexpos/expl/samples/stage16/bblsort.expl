@@ -39,12 +39,12 @@ int main() {
     begin
         temp = exposcall("Write", -2, "Enter N:");
         temp = exposcall("Read", -1, n);
-
     
         temp = exposcall("Write", -2, "Enter digits:");
         i = 0;
         while (i < n) do
-            temp = exposcall("Read", -1, arr[i]);
+            temp = exposcall("Read", -1, temp);
+            arr[i] = temp;
             i = i + 1;
         endwhile;
 
