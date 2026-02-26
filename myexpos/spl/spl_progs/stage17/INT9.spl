@@ -36,11 +36,14 @@ endwhile;
 // Check if inode_idx = MAX_FILE_NUM || file type isn't EXEC
 if (inode_idx == MAX_FILE_NUM || [INODE_TABLE + (inode_idx * 16) + 0] != EXEC) then
     alias physicalAddrRetVal R6;
-    physicalAddrRetVal = [PTBR + 2 * ((userSP - 1) / 512)] * 512 + ((userSP - 1) % 512);
-    [physicalAddrRetVal] = -1;
+    physicalAddrRetVal = [PTBR + 2 * ((userSP-1)/512)] * 512 + (userSP - 1)%512;
 
     SP = userSP;
+
+    [physicalAddrRetVal] = -1;
 else
+    print "File Found";
+
     multipush(R0, R1, R2, R3, R4, R5, R6);
     
     R1 = 3;
@@ -48,7 +51,7 @@ else
 
     call PROCESS_MANAGER;
 
-    multipush(R0, R1, R2, R3, R4, R5, R6);
+    multipop(R0, R1, R2, R3, R4, R5, R6);
 
     // Get UAPG from the process table of the current process
     alias userPageNum R7;
@@ -108,7 +111,7 @@ else
     R8 = 8; // DATA_BLOCK starts from index 8 and ends at 11
     R9 = 8; // Code starts from 8th entry in PAGE_TABLE
 
-    while (R8 <= 11) do
+    while (R8 < 12) do
         // Find DATA_BLOCKS which aren't -1
         if ([INODE_TABLE + inode_idx * 16 + R8] != -1) then
             // Get Free Page
