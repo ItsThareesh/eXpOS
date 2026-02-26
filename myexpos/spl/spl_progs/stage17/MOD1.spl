@@ -25,11 +25,7 @@ if (functionNum == 3) then
     R1 = 4;
     call PROCESS_MANAGER;
 
-    multipop(R1, R2);
-
-    // Invoke the Free user Area Page function
-    multipush(R1, R2);
-
+    // Invoke the Free User Area Page Function
     R1 = 2;
     call PROCESS_MANAGER;
 

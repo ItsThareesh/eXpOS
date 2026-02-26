@@ -16,7 +16,6 @@ while (idx < 16) do
 endwhile;
 
 if (flag == 1) then
-    print "Quitting";
     breakpoint;
     halt;
 endif;

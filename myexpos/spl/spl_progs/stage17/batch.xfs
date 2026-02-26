@@ -18,3 +18,4 @@ load --idle $HOME/myexpos/expl/samples/idle.xsm
 load --init $HOME/myexpos/expl/samples/stage17/shell.xsm
 load --exec $HOME/myexpos/expl/samples/stage17/evennos.xsm
 load --exec $HOME/myexpos/expl/samples/stage17/oddnos.xsm
+load --exec $HOME/myexpos/expl/samples/stage17/bblsort.xsm

@@ -46,7 +46,6 @@ else
     
     R1 = 3;
     R2 = [SYSTEM_STATUS_TABLE + 1];
-
     call PROCESS_MANAGER;
 
     multipop(R0, R1, R2, R3, R4, R5, R6);
@@ -61,14 +60,14 @@ else
     // Decrement MEM_FREE_COUNT
     [SYSTEM_STATUS_TABLE + 2] = [SYSTEM_STATUS_TABLE + 2] - 1;
 
-    // Set the SP to the start of the User Area Page
-    SP = userPageNum * 512 - 1;
-
     // Set state of the process
     [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 4] = RUNNING;
 
     // Store inode index obtained previously in the PROCESS_TABLE entry
     [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 7] = inode_idx;
+
+    // Set the SP to the start of the User Area Page
+    SP = userPageNum * 512 - 1;
 
     // Allocate new pages
     PTBR = PAGE_TABLE_BASE + [SYSTEM_STATUS_TABLE + 1] * 20;
