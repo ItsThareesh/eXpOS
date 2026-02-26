@@ -52,7 +52,7 @@ if (functionNum == 2) then
 
     while (idx < MAX_PROC_NUM) do
         if ([PROCESS_TABLE + (idx * 16) + 4] == WAIT_MEM) then
-            [PROCESS_TABLE + counter*16 + 4] = READY;
+            [PROCESS_TABLE + (idx * 16) + 4] = READY;
         endif;
 
         idx = idx + 1;
