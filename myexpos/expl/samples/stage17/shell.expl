@@ -1,14 +1,15 @@
 int main() {
     decl
         int temp;
-        str programName;
+        str progName;
     enddecl
     begin
         temp = exposcall("Write", -2, ">");
-        temp = exposcall("Read", -1, programName);
+        temp = exposcall("Read", -1, progName);
+        
         breakpoint;
 
-        temp = exposcall("Exec", programName);
+        temp = exposcall("Exec", progName);
         
         if (temp != 0) then
             temp = exposcall("Write", -2, "Invalid File");

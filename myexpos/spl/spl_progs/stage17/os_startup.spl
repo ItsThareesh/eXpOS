@@ -2,7 +2,7 @@
 loadi(2,15);
 loadi(3,16);
 
-// Load timer from block 17-18 to page 4 and 5
+// Load timer interrupt
 loadi(4,17);
 loadi(5,18);
 
