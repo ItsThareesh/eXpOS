@@ -116,11 +116,6 @@ PTLR = 10;
 // Load the first instruction into idle program stack
 [81 * 512] = [69 * 512 + 1];
 
-// Configure SYSTEM_STATUS_TABLE
-[SYSTEM_STATUS_TABLE + 1] = 0; // CURRENT_PID
-[SYSTEM_STATUS_TABLE + 2] = NUM_MEM_PAGES - 82; // MEM_FREE_COUNT
-[SYSTEM_STATUS_TABLE + 3] = 0; // WAIT_MEM_COUNT
-
 // Set SP to start execution
 SP = 8*512;
 

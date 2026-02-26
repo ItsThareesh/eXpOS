@@ -43,27 +43,15 @@ PTLR = 10;
 // Load the first instruction into INIT program stack
 [76 * 512] = [65 * 512 + 1];
 
-// ------------ CONFIGURE MEMORY_FREE_LIST ------------
-
-// 0-82 pages are occupied by OS, IDLE and INIT processes
-alias currentPage R0;
-currentPage = 0;
-
-while (currentPage <= 82) do
-    [MEMORY_FREE_LIST + currentPage] = 1;
-    currentPage = currentPage + 1;
-endwhile;
-
-// Set unused pages to 0
-while (currentPage < NUM_MEM_PAGES) do
-    [MEMORY_FREE_LIST + currentPage] = 0;
-    currentPage = currentPage + 1;
-endwhile;
-
 // ------------ CONFIGURING OS TABLES ------------
 
 // Configure TERMINAL_STATUS_TABLE
 [TERMINAL_STATUS_TABLE + 0] = 0; // STATUS
+
+// Configure SYSTEM_STATUS_TABLE
+[SYSTEM_STATUS_TABLE + 1] = 0; // CURRENT_PID
+[SYSTEM_STATUS_TABLE + 2] = NUM_MEM_PAGES - 82; // MEM_FREE_COUNT
+[SYSTEM_STATUS_TABLE + 3] = 0; // WAIT_MEM_COUNT
 
 // Set all processes other than INIT and IDLE to TERMINATED
 alias count R1;
@@ -72,6 +60,23 @@ count = 2;
 while (count < 16) do
     [PROCESS_TABLE + (count * 16) + 4] = TERMINATED;
     count = count + 1;
+endwhile;
+
+// ------------ CONFIGURE MEMORY_FREE_LIST ------------
+
+// 0-82 pages are occupied by OS, IDLE and INIT processes
+alias currentPage R0;
+currentPage = 0;
+
+while (currentPage < 83) do
+    [MEMORY_FREE_LIST + currentPage] = 1;
+    currentPage = currentPage + 1;
+endwhile;
+
+// Set unused pages to 0
+while (currentPage < NUM_MEM_PAGES) do
+    [MEMORY_FREE_LIST + currentPage] = 0;
+    currentPage = currentPage + 1;
 endwhile;
 
 return;

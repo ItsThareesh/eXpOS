@@ -23,7 +23,7 @@ if (functionNum == 1) then
     alias counter R0;
     counter = 76; // XSM machine sets pages 76-127 as free pages
 
-    while (counter < 127 && [MEMORY_FREE_LIST + counter] != 0) do
+    while (counter < NUM_MEM_PAGES && [MEMORY_FREE_LIST + counter] != 0) do
         counter = counter+1;
     endwhile;
 

@@ -42,8 +42,6 @@ if (inode_idx == MAX_FILE_NUM || [INODE_TABLE + (inode_idx * 16) + 0] != EXEC) t
 
     [physicalAddrRetVal] = -1;
 else
-    print "File Found";
-
     multipush(R0, R1, R2, R3, R4, R5, R6);
     
     R1 = 3;
@@ -148,4 +146,4 @@ endif;
 // Reset the mode flag
 [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 9] = 0;
 
-return;
+ireturn;
