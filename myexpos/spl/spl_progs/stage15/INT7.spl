@@ -49,7 +49,7 @@ else
 
     // set the value at the return address to 0
     alias physicalAddrRetVal R6;
-    physicalAddrRetVal = ([PTBR + 2 * (userSP - 1)/ 512] * 512) + ((userSP - 1) % 512);
+    physicalAddrRetVal = ([PTBR + 2 * (userSP - 1)/512] * 512) + ((userSP - 1) % 512);
 
     [physicalAddrRetVal] = 0;
 endif;
