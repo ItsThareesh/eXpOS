@@ -80,6 +80,21 @@ If successful, you should see the following folders inside `myexpos` directory:
 
 **eXpOS installation is now complete. You may continue follownig everything from [eXpOS Roadmap](https://exposnitc.github.io/Roadmap.html$0) starting from Stage 2**.
 
+## Additional Helpful Notes
+
+- The `expos_container/` folder on your host machine will contain all the files related to eXpOS. You can use this folder for version control (e.g., git) or backups.
+- The Docker container provides an isolated environment, so you won't have to worry about installing legacy libraries on your host system. All necessary dependencies are contained within the Docker image.
+- If you want to stop working on eXpOS, simply exit the container. Your work will be preserved in the `expos_container/` folder, and you can restart the container later to continue where you left off.
+- Modify `.gitignore` in `expos_container/` to your needs. For example, you might want to ignore build artifacts while keeping source files under version control. 
+
+## Helper Scripts
+
+- For the convenience of users, I've created helper scripts in the `myexpos/scripts` directory to ease development process. Currently this repo has `compile_spl` and `runxfs` scripts.
+- Run `chmod +x $HOME/myexpos/scripts/*` to make the scripts executable.
+- Copy `.bashrc` from `root` directory to `/home/expos/.bashrc` to add the helper scripts to your PATH.
+- You can now start using `compile_spl` and `runxfs` commands from anywhere inside the container to compile SPL files and load batch files with xfs-interface respectively.
+
+
 ## Useful Commands
 
 ### Exit the Container

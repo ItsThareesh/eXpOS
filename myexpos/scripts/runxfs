@@ -1,28 +1,71 @@
 #!/bin/bash
-set -euo pipefail
 
-# Check arguments
-if [ "$#" -ne 2 ]; then
-    echo "Usage: runxfs <stage_folder> <filename>"
-    exit 1
-fi
+# Configuration
+
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m'
 
 BASE_DIR="$HOME/myexpos"
-STAGE=$1
-FILE=$2
+SPL_PROGS_DIR="$BASE_DIR/spl/spl_progs"
+XFS_DIR="$BASE_DIR/xfs-interface"
+XFS_EXEC="$XFS_DIR/xfs-interface"
 
-FILE_PATH="$BASE_DIR/spl/spl_progs/$STAGE/$FILE"
-XFS_EXEC="$BASE_DIR/xfs-interface/xfs-interface"
+# Argument Validation
 
-# Validate file exists
-if [ ! -f "$FILE_PATH" ]; then
-    echo "Error: File not found -> $FILE_PATH"
-    exit 1
+if [ "$#" -ne 2 ]; then
+    echo -e "${YELLOW}Usage:${NC} runxfs <stage_folder> <file_name>"
+    exit 2
 fi
 
-cd "$BASE_DIR/xfs-interface"
+STAGE="$1"
+FILE_NAME="$2"
 
-echo "Running XFS on: $FILE_PATH"
+STAGE_DIR="$SPL_PROGS_DIR/$STAGE"
+FILE_PATH="$STAGE_DIR/$FILE_NAME"
+
+if [ ! -d "$STAGE_DIR" ]; then
+    echo -e "${RED}Error:${NC} Stage '$STAGE' does not exist."
+    exit 2
+fi
+
+if [ ! -f "$FILE_PATH" ]; then
+    echo -e "${RED}Error:${NC} File '$FILE_NAME' not found in stage '$STAGE'."
+    exit 2
+fi
+
+if [ ! -x "$XFS_EXEC" ]; then
+    echo -e "${RED}Error:${NC} xfs-interface not found or not executable."
+    exit 2
+fi
+
+# Execution Header
+
+echo -e "${YELLOW}Stage:${NC} $STAGE"
+echo -e "${YELLOW}Target:${NC} $FILE_NAME"
+echo "------------------------------------------------------------"
 
 # Execute
-"$XFS_EXEC" run "$FILE_PATH"
+
+cd "$XFS_DIR" || exit 2
+
+printf "%-45s" "Running: $FILE_NAME"
+
+output=$("$XFS_EXEC" run "../spl/spl_progs/$STAGE/$FILE_NAME" 2>&1)
+status=$?
+
+if [ "$status" -ne 0 ]; then
+    echo -e "[ ${RED}FAILED${NC} ]"
+    echo "------------------------------------------------------------"
+    echo -e "${RED}XFS execution failed (exit code $status).${NC}"
+    exit 1
+else
+    echo -e "[ ${GREEN}OK${NC} ]"
+    echo -e " - ${GREEN}$output${NC}"
+fi
+
+echo "------------------------------------------------------------"
+echo -e "${GREEN}XFS run completed successfully.${NC}"
+exit 0
