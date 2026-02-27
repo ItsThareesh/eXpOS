@@ -1,12 +1,2 @@
 disk.xfs
-*.dat
-*~
-*.o
-*.xsm
-*.tmp
-*.dSYM
-*.vscode/
 .DS_Store
-temp*
-test
-tags

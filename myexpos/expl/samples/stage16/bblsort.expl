@@ -39,7 +39,6 @@ int main() {
     begin
         temp = exposcall("Write", -2, "Enter N:");
         temp = exposcall("Read", -1, n);
-
     
         temp = exposcall("Write", -2, "Enter digits:");
         i = 0;

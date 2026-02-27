@@ -1,11 +1,3 @@
-expl-bin
-ltranslate
-lex.yy.c
-ltranslate.lex.c
-y.tab.c
-y.tab.h
-*~
-*.temp
-*.o
 .DS_Store
 .vscode/*
+assemblycode.xsm

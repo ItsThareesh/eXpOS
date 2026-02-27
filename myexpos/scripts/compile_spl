@@ -35,4 +35,7 @@ done
 
 if [ "$found" = false ]; then
     echo "No .spl files found in $TARGET_DIR"
+else
+    echo "-----------------------------------------"
+    echo "Compilation completed for all .spl files"
 fi
