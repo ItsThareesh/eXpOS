@@ -1,0 +1,75 @@
+type
+    Student
+    {
+        str name;
+        int marks;
+    }
+endtype
+
+int main()
+{
+    decl
+        Student student1, student2, student3, student4;
+        int a, b;
+    enddecl
+    begin
+        a = initialize();
+
+        student1 = alloc();
+        student1.name="John";
+        student1.marks=89;
+
+        student2 = alloc();
+        student2.name="Jane";
+        student2.marks=92;
+
+        student3 = alloc();
+        student3.name="Doe";
+        student3.marks=85;
+
+        // student4 = alloc();
+        // student4.name="Smith";
+        // student4.marks=90;
+
+        // student5 = alloc();
+        // student5.name="Emily";
+        // student5.marks=95;
+
+        // student6 = alloc();
+        // student6.name="Michael";
+        // student6.marks=88;
+
+        // student7 = alloc();
+        // student7.name="Sarah";
+        // student7.marks=91;
+
+        // student8 = alloc();
+        // student8.name="David";
+        // student8.marks=87;
+
+        // student9 = alloc();
+        // student9.name="Anna";
+        // student9.marks=93;
+
+        b = exposcall("Write", -2, student1.name);
+        b = exposcall("Write", -2, student1.marks);
+        b = exposcall("Write", -2, student2.name);
+        b = exposcall("Write", -2, student2.marks);
+        b = exposcall("Write", -2, student3.name);
+        b = exposcall("Write", -2, student3.marks);
+        // b = exposcall("Write", -2, student4.name);
+        // b = exposcall("Write", -2, student4.marks);
+        // b = exposcall("Write", -2, student5.name);
+        // b = exposcall("Write", -2, student5.marks);
+        // b = exposcall("Write", -2, student6.name);
+        // b = exposcall("Write", -2, student6.marks);
+        // b = exposcall("Write", -2, student7.name);
+        // b = exposcall("Write", -2, student7.marks);
+        // b = exposcall("Write", -2, student8.name);
+        // b = exposcall("Write", -2, student8.marks);
+        // b = exposcall("Write", -2, student9.name);
+        // b = exposcall("Write", -2, student9.marks);
+
+        return 0;
+    end
+}

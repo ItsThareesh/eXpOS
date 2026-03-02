@@ -13,6 +13,8 @@ int main()
         int a, b;
     enddecl
     begin
+        breakpoint;
+
         a = initialize();
 
         student1 = alloc();
