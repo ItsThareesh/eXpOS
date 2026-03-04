@@ -1,0 +1,62 @@
+// MEMORY MANAGER
+
+alias functionNum R1;
+
+// Get Free Page
+if (functionNum == 1) then
+    // SYSTEM_STATUS_TABLE + 3 is WAIT_MEM_COUNT
+    // Inform OS that there is a process currently blocked
+    // and waiting for a physical memory page to be released
+    [SYSTEM_STATUS_TABLE + 3] = [SYSTEM_STATUS_TABLE + 3] + 1;
+
+    // SYSTEM_STATUS_TABLE + 2 is MEM_FREE_COUNT
+    while ([SYSTEM_STATUS_TABLE + 2] == 0) do
+        [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE+1] * 16) + 4] = WAIT_MEM;
+        call SCHEDULER;
+    endwhile;
+
+    // Decrement the WAIT_MEM_COUNT field and MEM_FREE_COUNT
+    [SYSTEM_STATUS_TABLE + 3] = [SYSTEM_STATUS_TABLE + 3] - 1;
+    [SYSTEM_STATUS_TABLE + 2] = [SYSTEM_STATUS_TABLE + 2] - 1;
+
+    // Find the first free page in Memory Free List
+    alias counter R0;
+    counter = 76; // XSM machine sets pages 76-127 as free pages
+
+    while (counter < NUM_MEM_PAGES && [MEMORY_FREE_LIST + counter] != 0) do
+        counter = counter+1;
+    endwhile;
+
+    [MEMORY_FREE_LIST + counter] = 1;
+
+    // R0 is already set as the counter
+    // Returns R0 to the caller
+endif;
+
+// Release Page
+if (functionNum == 2) then
+    alias pageNum R2;
+
+    // Decrease Memory Free List entry for that page
+    [MEMORY_FREE_LIST + pageNum] = [MEMORY_FREE_LIST + pageNum] - 1;
+    
+    // If Memory Free List entry of the page becomes zero
+    // increment the value of MEM_FREE_COUNT in SYSTEM_STATUS_TABLE
+    if ([MEMORY_FREE_LIST + pageNum] == 0) then
+        [SYSTEM_STATUS_TABLE + 2] = [SYSTEM_STATUS_TABLE + 2] + 1;
+    endif;
+
+    // Loop through all processes to find if there are any in WAIT_MEM state
+    alias idx R3;
+    idx = 1;
+
+    while (idx < MAX_PROC_NUM) do
+        if ([PROCESS_TABLE + (idx * 16) + 4] == WAIT_MEM) then
+            [PROCESS_TABLE + (idx * 16) + 4] = READY;
+        endif;
+
+        idx = idx + 1;
+    endwhile;
+endif;
+
+return;

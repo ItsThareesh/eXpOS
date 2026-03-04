@@ -1,0 +1,23 @@
+[(PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16) + 4] = TERMINATED;
+
+alias flag R1;
+flag = 1;
+
+// Loop through all processes except IDLE process 
+alias idx R2;
+idx = 1;
+
+// check if all processes are TERMINATED
+while (idx < 16) do
+    if ([PROCESS_TABLE + (idx * 16) + 4] != TERMINATED) then
+        flag = 0;
+    endif;
+    idx = idx + 1;
+endwhile;
+
+if (flag == 1) then
+    breakpoint;
+    halt;
+endif;
+
+call SCHEDULER;

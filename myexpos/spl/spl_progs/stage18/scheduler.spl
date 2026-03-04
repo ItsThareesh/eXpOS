@@ -1,0 +1,59 @@
+alias currentPID R0;
+currentPID = [SYSTEM_STATUS_TABLE+1];
+
+// Push BP of current process on top of kernel stack
+multipush(BP);
+
+// Obtain process table corresponding to currentPID
+alias process_table_entry R1;
+process_table_entry = PROCESS_TABLE + (currentPID * 16);
+
+// Save context of current process in Process Table
+[process_table_entry + 12] = SP % 512;
+[process_table_entry + 14] = PTBR;
+[process_table_entry + 15] = PTLR;
+
+// Find the next process to schedule
+alias idx R2;
+idx = (currentPID + 1) % 16;
+
+alias newPID R3;
+newPID = 0;
+
+// Loop until we find a READY process or we come back to where we started
+while (idx != currentPID) do
+    // Skip PID 0 (Idle) during search; we only pick it if nothing else is READY
+    if (idx != 0) then
+        if ([PROCESS_TABLE + (idx * 16) + 4] == READY || [PROCESS_TABLE + (idx * 16) + 4] == CREATED) then
+            newPID = idx;
+            break;
+        endif;
+    endif;
+    idx = (idx + 1) % 16;
+endwhile;
+
+// Get the process table entry for the new process
+alias new_process_table_entry R4;
+new_process_table_entry = PROCESS_TABLE + (newPID * 16);
+
+// Set back the kernel stack pointer and page table registers
+SP = [new_process_table_entry + 11] * 512 + [new_process_table_entry + 12];
+PTBR = [new_process_table_entry + 14];
+PTLR = [new_process_table_entry + 15]; 
+
+[SYSTEM_STATUS_TABLE + 1] = newPID;
+
+// If process is in CREATED state, then don't restore context. Just return to user program directly.
+if ([new_process_table_entry + 4] == CREATED) then
+    [new_process_table_entry + 4] = RUNNING;
+    [new_process_table_entry + 9] = 0; // Set Mode Flag to zero
+    SP = [new_process_table_entry + 13];
+    ireturn;
+endif;
+
+[new_process_table_entry + 4] = RUNNING;
+
+// Restore the BP of new process from top of kernel stack
+multipop(BP);
+
+return;
