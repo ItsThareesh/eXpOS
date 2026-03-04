@@ -4,10 +4,10 @@ alias functionNum R1;
 alias currentPID R2;
 
 // Disk Acquire
-if (functionNum == 2) then
+if (functionNum == 3) then
     while ([DISK_STATUS_TABLE + 0] == 1) do
         [PROCESS_TABLE + 16*currentPID + 4] = WAIT_DISK;
-        
+
         multipush(R1, R2);
         call SCHEDULER;
         multipop(R1, R2);
@@ -23,9 +23,9 @@ if (functionNum == 8) then
         // Change the state of the current process to WAIT_TERMINAL
         [PROCESS_TABLE + 16*currentPID + 4] = WAIT_TERMINAL;
 
-        multipush(R1, R2);
+        multipush(R0, R1, R2);
         call SCHEDULER;
-        multipop(R1, R2);
+        multipop(R0, R1, R2);
     endwhile;
 
     [TERMINAL_STATUS_TABLE + 0] = 1;
