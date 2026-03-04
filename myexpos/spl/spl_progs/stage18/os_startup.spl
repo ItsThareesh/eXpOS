@@ -1,0 +1,126 @@
+// Load the exception handler routine from the disk to the memory
+loadi(2,15);
+loadi(3,16);
+
+// Load timer interrupt
+loadi(4,17);
+loadi(5,18);
+
+// Load the Disk Interrupt module from disk to memory
+loadi(6,19);
+loadi(7,20);
+
+// Load the Console Interrupt module from disk to memory
+loadi(8,21);
+loadi(9,22);
+
+// Load the INT6 module from disk to memory
+loadi(14,27);
+loadi(15,28);
+
+// Load the INT7 module from disk to memory
+loadi(16,29);
+loadi(17,30);
+
+// Load the INT9 module from disk to memory
+loadi(20,33);
+loadi(21,34);
+
+// Load the INT10 module from the disk to the memory
+loadi(22,35);
+loadi(23,36);
+
+// Load RESOURCE_MANAGER (MOD 0) from disk to memory
+loadi(40,53);
+loadi(41,54);
+
+// Load PROCESS_MANAGER (MOD 1) from disk to memory
+loadi (42,55);
+loadi (43,56);
+
+// loading MEMORY_MANAGER (MOD 2) from disk to memory
+loadi (44,57);
+loadi (45,58);
+
+// Load DEVICE_MANAGER (MOD 4) from disk to memory
+loadi(48,61);
+loadi(49,62);
+
+// Load SCHEDULER (MOD 5)
+loadi(50,63);
+loadi(51,64);
+
+// Load Boot Module (MOD 7) from disk to memory
+loadi(54,67);
+loadi(55,68);
+
+// Load INODE_TABLE from disk to memory
+loadi(59,3);
+loadi(60,4);
+
+// Load Shared library from blocks 13 and 14 to memory
+loadi(63,13);
+loadi(64,14);
+
+// Load INIT Program
+loadi(65,7);
+loadi(66,8);
+
+// Load IDLE Program
+loadi(69,11);
+loadi(70,12);
+
+// Set Kernel Stack to User Area (Page 82 in memory)
+SP = 82 * 512 - 1;
+
+call BOOT_MODULE;
+
+// ------------ IDLE PROGRAM ------------
+
+PTBR = PAGE_TABLE_BASE;
+PTLR = 10;
+
+//Library (Not Used in IDLE)
+[PTBR+0] = -1;
+[PTBR+1] = "0100";
+[PTBR+2] = -1;
+[PTBR+3] = "0100";
+
+// Heap (Not Used in IDLE)
+[PTBR+4] = -1;
+[PTBR+5] = "0000";
+[PTBR+6] = -1;
+[PTBR+7] = "0000";
+
+// Code
+[PTBR+8] = 69;
+[PTBR+9] = "0100";
+[PTBR+10] = 70;
+[PTBR+11] = "0100";
+[PTBR+12] = -1;
+[PTBR+13] = "0000";
+[PTBR+14] = -1;
+[PTBR+15] = "0000";
+
+// Stack
+[PTBR+16] = 81;
+[PTBR+17] = "0110";
+[PTBR+18] = -1;
+[PTBR+19] = "0000";
+
+// Setting up process table for IDLE
+[PROCESS_TABLE + 1] = 0;
+[PROCESS_TABLE + 4] = RUNNING;
+[PROCESS_TABLE + 11] = 82; // UserArea Page No.
+[PROCESS_TABLE + 12] = 0; // KPTR
+[PROCESS_TABLE + 13] = 8 * 512; // UPTR
+[PROCESS_TABLE + 14] = PTBR;
+[PROCESS_TABLE + 15] = PTLR;
+
+// Load the first instruction into idle program stack
+[81 * 512] = [69 * 512 + 1];
+
+// Set SP to start execution
+SP = 8*512;
+
+ireturn;
