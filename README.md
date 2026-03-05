@@ -78,7 +78,7 @@ If successful, you should see the following folders inside `myexpos` directory:
 - xsm/
 ```
 
-**eXpOS installation is now complete. You may continue follownig everything from [eXpOS Roadmap](https://exposnitc.github.io/Roadmap.html$0) starting from Stage 2**.
+**eXpOS installation is now complete. You may continue following everything from [eXpOS Roadmap](https://exposnitc.github.io/Roadmap.html$0) starting from Stage 2**.
 
 ## Additional Helpful Notes
 

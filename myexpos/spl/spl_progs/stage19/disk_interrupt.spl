@@ -1,0 +1,29 @@
+breakpoint;
+
+// Save the value of SP in the user SP field of Process Table entry of the process
+[PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1]*16 + 13] = SP;
+
+// Set the value of SP to beginning of the kernel stack.
+SP = [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1]*16 + 11] * 512 - 1;
+
+backup;
+
+[DISK_STATUS_TABLE + 0] = 0; // Reset Disk Status
+
+alias counter R0;
+counter = 1;
+
+while (counter < MAX_PROC_NUM) do
+    if ([PROCESS_TABLE + 16*counter + 4] == WAIT_DISK) then
+        [PROCESS_TABLE + 16*counter + 4] = READY;
+    endif;
+    counter = counter + 1;
+endwhile;
+
+restore;
+
+SP = [PROCESS_TABLE + [SYSTEM_STATUS_TABLE+1]*16 + 13];
+
+breakpoint;
+
+ireturn;
