@@ -1,0 +1,126 @@
+// MEMORY MANAGER
+
+alias functionNum R1;
+
+// Get Free Page
+if (functionNum == 1) then
+    // SYSTEM_STATUS_TABLE + 3 is WAIT_MEM_COUNT
+    // Inform OS that there is a process currently blocked
+    // and waiting for a physical memory page to be released
+    [SYSTEM_STATUS_TABLE + 3] = [SYSTEM_STATUS_TABLE + 3] + 1;
+
+    // SYSTEM_STATUS_TABLE + 2 is MEM_FREE_COUNT
+    while ([SYSTEM_STATUS_TABLE + 2] == 0) do
+        [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE+1] * 16) + 4] = WAIT_MEM;
+        call SCHEDULER;
+    endwhile;
+
+    // Decrement the WAIT_MEM_COUNT field and MEM_FREE_COUNT
+    [SYSTEM_STATUS_TABLE + 3] = [SYSTEM_STATUS_TABLE + 3] - 1;
+    [SYSTEM_STATUS_TABLE + 2] = [SYSTEM_STATUS_TABLE + 2] - 1;
+
+    // Find the first free page in Memory Free List
+    alias counter R0;
+    counter = 76; // XSM machine sets pages 76-127 as free pages
+
+    while (counter < NUM_MEM_PAGES && [MEMORY_FREE_LIST + counter] != 0) do
+        counter = counter+1;
+    endwhile;
+
+    [MEMORY_FREE_LIST + counter] = 1;
+
+    // R0 is already set as the counter
+    // Returns R0 to the caller
+endif;
+
+// Release Page
+if (functionNum == 2) then
+    alias pageNum R2;
+
+    // Decrease Memory Free List entry for that page
+    [MEMORY_FREE_LIST + pageNum] = [MEMORY_FREE_LIST + pageNum] - 1;
+    
+    // If Memory Free List entry of the page becomes zero
+    // increment the value of MEM_FREE_COUNT in SYSTEM_STATUS_TABLE
+    if ([MEMORY_FREE_LIST + pageNum] == 0) then
+        [SYSTEM_STATUS_TABLE + 2] = [SYSTEM_STATUS_TABLE + 2] + 1;
+    endif;
+
+    // Loop through all processes to find if there are any in WAIT_MEM state
+    alias idx R3;
+    idx = 1;
+
+    while (idx < MAX_PROC_NUM) do
+        if ([PROCESS_TABLE + (idx * 16) + 4] == WAIT_MEM) then
+            [PROCESS_TABLE + (idx * 16) + 4] = READY;
+        endif;
+
+        idx = idx + 1;
+    endwhile;
+endif;
+
+// Release Block
+if (functionNum == 4) then
+    alias blockNumber R2;
+    [DISK_FREE_LIST + blockNumber] = [DISK_FREE_LIST + blockNumber] - 1;
+endif;
+
+// Get Code Page
+if (functionNum == 5) then
+    alias blockNumber R2;
+    alias pid R3;
+    alias idx R4;
+    alias pageTableEntry R5;
+    
+    pid = 1;
+
+    while (pid < MAX_PROC_NUM) do
+        idx = 4;
+
+        while (idx < 8) do
+            // [PROCESS_TABLE + pid*16 + 14] = PTBR
+            // PTBR + idx * 2 -> Iterate through Code Segment pages
+            if ([DISK_MAP_TABLE + pid*10 + idx] == blockNumber) then
+                pageTableEntry = [PROCESS_TABLE + pid*16 + 14] + idx*2;
+                
+                if ([pageTableEntry] != -1) then
+                    alias physicalPage R6;
+                    physicalPage = [pageTableEntry];
+
+                    // increment MEMORY_FREE_LIST (shared page)
+                    [MEMORY_FREE_LIST + physicalPage] = [MEMORY_FREE_LIST + physicalPage] + 1;
+
+                    R0 = physicalPage;
+
+                    return; // early return
+                endif;
+            endif;
+
+            idx = idx + 1;
+        endwhile;
+
+        pid = pid + 1;
+    endwhile;
+
+    alias physicalPage R6;
+
+    // Otherwise call Get Free Page
+    multipush(R0, R1, R2, R3, R4, R5);
+    functionNum = 1;
+    call MEMORY_MANAGER;
+    physicalPage = R0;
+    multipop(R0, R1, R2, R3, R4, R5);
+
+    // Load the contents into the memory page
+    multipush(R0, R1, R2, R3, R4, R5, R6);
+    functionNum = 2;
+    R2 = [SYSTEM_STATUS_TABLE + 1];
+    R3 = physicalPage;
+    R4 = blockNumber;
+    call DEVICE_MANAGER;
+    multipop(R0, R1, R2, R3, R4, R5, R6);
+
+    R0 = physicalPage;
+endif;
+
+return;
