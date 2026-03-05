@@ -59,7 +59,7 @@ loadi(59,3);
 loadi(60,4);
 
 // Load DISK_FREE_LIST from disk to memory
-loadi(61, 2);
+loadi(61,2);
 
 // Load Shared library to memory
 loadi(63,13);

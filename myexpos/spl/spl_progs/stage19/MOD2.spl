@@ -33,7 +33,6 @@ if (functionNum == 1) then
     // Returns R0 to the caller
 endif;
 
-// Release Page
 if (functionNum == 2) then
     alias pageNum R2;
 
@@ -59,13 +58,11 @@ if (functionNum == 2) then
     endwhile;
 endif;
 
-// Release Block
 if (functionNum == 4) then
     alias blockNumber R2;
     [DISK_FREE_LIST + blockNumber] = [DISK_FREE_LIST + blockNumber] - 1;
 endif;
 
-// Get Code Page
 if (functionNum == 5) then
     alias blockNumber R2;
     alias pid R3;
@@ -106,17 +103,17 @@ if (functionNum == 5) then
 
     // Otherwise call Get Free Page
     multipush(R0, R1, R2, R3, R4, R5);
-    functionNum = 1;
+    R1 = 1;
     call MEMORY_MANAGER;
     physicalPage = R0;
     multipop(R0, R1, R2, R3, R4, R5);
 
     // Load the contents into the memory page
     multipush(R0, R1, R2, R3, R4, R5, R6);
-    functionNum = 2;
+    R1 = 2;
+    R4 = blockNumber;
     R2 = [SYSTEM_STATUS_TABLE + 1];
     R3 = physicalPage;
-    R4 = blockNumber;
     call DEVICE_MANAGER;
     multipop(R0, R1, R2, R3, R4, R5, R6);
 
