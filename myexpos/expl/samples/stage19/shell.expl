@@ -1,0 +1,20 @@
+int main() {
+    decl
+        int temp;
+        str progName;
+    enddecl
+    begin
+        temp = exposcall("Write", -2, "> File Name:");
+        temp = exposcall("Read", -1, progName);
+
+        breakpoint;
+
+        temp = exposcall("Exec", progName);
+        
+        if (temp == -1) then
+            temp = exposcall("Write", -2, "Invalid File");
+        endif;
+
+        return 0;
+    end
+}
