@@ -89,7 +89,7 @@ alias offset R0;
 offset = 512-16; // Start at beginning of PER_PROCESS_RESOURCE_TABLE
 
 while (offset < 512) do
-    // [PROCESS_TABLE + 16 + 11] -> UAPG (add 16 because it's INIT process, PID = 1)
+    // [PROCESS_TABLE + 16 + 11] -> UAPG (add 16 because it's INIT process)
     // Physical Address = (UAPG * 512) + Offset
     [[PROCESS_TABLE + 16 + 11] * 512 + offset] = -1;
     offset = offset + 1;
@@ -105,7 +105,6 @@ while (i < 10) do
     i = i + 1; 
 endwhile;
 
-// Setup DISK_MAP_TABLE for INIT Process Code Pages
 [DISK_MAP_TABLE + 14] = 7;
 [DISK_MAP_TABLE + 15] = 8;
 

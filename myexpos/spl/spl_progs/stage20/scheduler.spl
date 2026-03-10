@@ -33,25 +33,27 @@ while (idx != currentPID) do
 endwhile;
 
 // Get the process table entry for the new process
-alias new_pcb_entry R4;
-new_pcb_entry = PROCESS_TABLE + (newPID * 16);
+alias new_process_table_entry R4;
+new_process_table_entry = PROCESS_TABLE + (newPID * 16);
 
 // Set back the kernel stack pointer and page table registers
-SP = [new_pcb_entry + 11] * 512 + [new_pcb_entry + 12];
-PTBR = [new_pcb_entry + 14];
-PTLR = [new_pcb_entry + 15]; 
+SP = [new_process_table_entry + 11] * 512 + [new_process_table_entry + 12];
+PTBR = [new_process_table_entry + 14];
+PTLR = [new_process_table_entry + 15]; 
 
 [SYSTEM_STATUS_TABLE + 1] = newPID;
+[new_process_table_entry + 4] = RUNNING;
 
 // If process is in CREATED state, then don't restore context. Just return to user program directly.
-if ([new_pcb_entry + 4] == CREATED) then
-    [new_pcb_entry + 4] = RUNNING;
-    [new_pcb_entry + 9] = 0; // Set Mode Flag to zero
-    SP = [new_pcb_entry + 13];
+if ([new_process_table_entry + 4] == CREATED) then
+    [new_process_table_entry + 9] = 0; // Set Mode Flag to zero
+    SP = [new_process_table_entry + 13];
+
+    // Set BP to value saved at beginning of Kernel Stack
+    // This is done in fork() system calls
+    BP = [new_process_table_entry + 11];
     ireturn;
 endif;
-
-[new_pcb_entry + 4] = RUNNING;
 
 // Restore the BP of new process from top of kernel stack
 multipop(BP);
