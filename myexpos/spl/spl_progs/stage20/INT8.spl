@@ -58,7 +58,7 @@ else
     multipop(R0, R1, R2, R3);
 
     // Allocate a User Area Page
-    alias uapg R5;
+    alias uapg R4;
     multipush(R0, R1, R2, R3);
     R1 = 1;
     call MEMORY_MANAGER;
@@ -70,34 +70,31 @@ else
     // of TICK, PID, PPID, UAPG, KPTR, INPUT BUFFER, MODE FLAG, PTBR and PTLR
     // Indices 1, 14 and 15 are finalized in Get PCB Entry in PROCESS_MANAGER
     // counter guess no need to setup PTBR and PTLR? No clue
-    [PROCESS_TABLE + newPID * 16] = 0; // TICK
-    [PROCESS_TABLE + newPID * 16 + 2] = [SYSTEM_STATUS_TABLE + 1]; // PPID
-    [PROCESS_TABLE + newPID * 16 + 3] = [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 3]; // USERID
-    [PROCESS_TABLE + newPID * 16 + 4] = CREATED; // STATE (2 WORDS)
-    [PROCESS_TABLE + newPID * 16 + 6] = [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 6]; // SWAP FLAG
-    [PROCESS_TABLE + newPID * 16 + 7] = [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 7];  // INODE INDEX
-    [PROCESS_TABLE + newPID * 16 + 8] = 0; // INPUT BUFFER
-    [PROCESS_TABLE + newPID * 16 + 9] = 0; // MODE FLAG
-    [PROCESS_TABLE + newPID * 16 + 10] = [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 10]; // UA Swap Status
-    [PROCESS_TABLE + newPID * 16 + 11] = uapg; // UAPG
-    [PROCESS_TABLE + newPID * 16 + 12] = 0; // KPTR
-    [PROCESS_TABLE + newPID * 16 + 13] = [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 13]; // UPTR
+    [PROCESS_TABLE + (newPID * 16) + 0] = 0; // TICK
+    [PROCESS_TABLE + (newPID * 16) + 2] = [SYSTEM_STATUS_TABLE + 1]; // PPID
+    [PROCESS_TABLE + (newPID * 16) + 3] = [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 3]; // USERID
+    [PROCESS_TABLE + (newPID * 16) + 4] = CREATED; // STATE (2 WORDS)
+    [PROCESS_TABLE + (newPID * 16) + 6] = [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 6]; // SWAP FLAG
+    [PROCESS_TABLE + (newPID * 16) + 7] = [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 7];  // INODE INDEX
+    [PROCESS_TABLE + (newPID * 16) + 8] = 0; // INPUT BUFFER
+    [PROCESS_TABLE + (newPID * 16) + 9] = 0; // MODE FLAG
+    [PROCESS_TABLE + (newPID * 16) + 10] = [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 10]; // UA Swap Status
+    [PROCESS_TABLE + (newPID * 16) + 11] = uapg; // UAPG
+    [PROCESS_TABLE + (newPID * 16) + 12] = 0; // KPTR
+    [PROCESS_TABLE + (newPID * 16) + 13] = [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 13]; // UPTR
 
     // ------------ Configure PER_PROCESS_RESOURCE_TABLE ------------
-    alias offset R6;
-    offset = 512-16; // Start at beginning of PER_PROCESS_RESOURCE_TABLE
-
-    print "OK 1";
+    alias offset R5;
+    offset = RESOURCE_TABLE_OFFSET; // Start at beginning of PER_PROCESS_RESOURCE_TABLE
 
     // Copy the same contents from parent's PER_PROCESS_RESOURCE_TABLE
     while (offset < 512) do
-        print "OK 2";
         [[PROCESS_TABLE + (newPID*16) + 11]*512 + offset] = [[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE+1]*16) + 11]*512 + offset];
         offset = offset + 1;
     endwhile;
 
     // ------------ Configure DISK_MAP_TABLE ------------
-    alias counter R6;
+    alias counter R5;
     counter = 0;
 
     // Copy the same contents from parent's DISK_MAP_TABLE
@@ -123,8 +120,8 @@ else
     endwhile;
 
     // Copy Parent's User Stack to Child
-    alias oldStack R7;
-    alias newStack R8;
+    alias oldStack R6;
+    alias newStack R7;
 
     oldStack = [PTBR + 16];
     newStack = [newPTBR + 16];

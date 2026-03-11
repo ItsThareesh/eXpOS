@@ -1,8 +1,8 @@
-alias currentPID R0;
-currentPID = [SYSTEM_STATUS_TABLE+1];
-
 // Push BP of current process on top of kernel stack
 multipush(BP);
+
+alias currentPID R0;
+currentPID = [SYSTEM_STATUS_TABLE+1];
 
 // Obtain process table corresponding to currentPID
 alias process_table_entry R1;
@@ -51,7 +51,7 @@ if ([new_pcb_entry + 4] == CREATED) then
 
     // Set BP to value saved at beginning of Kernel Stack
     // This is done in fork() system calls
-    BP = [new_pcb_entry + 11];
+    BP = [[new_pcb_entry + 11]*512];
     ireturn;
 endif;
 
