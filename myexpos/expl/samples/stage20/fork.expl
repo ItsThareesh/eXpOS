@@ -5,13 +5,14 @@ int main () {
     
     begin
         breakpoint;
+
         pid = exposcall("Fork");
         
         if(pid == 0) then
-            pid = exposcall ("Write", -2, "Child");
+            pid = exposcall("Write", -2, "Child");
             pid = exposcall("Exec", "oddnos.xsm");
         else
-            pid = exposcall ("Write", -2, "Parent");
+            pid = exposcall("Write", -2, "Parent");
             pid = exposcall("Exec", "evennos.xsm");
         endif;
         
