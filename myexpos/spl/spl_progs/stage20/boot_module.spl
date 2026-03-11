@@ -98,11 +98,12 @@ endwhile;
 // ------------ Configure DISK_MAP_TABLE ------------
 
 alias i R0;
-
 i = 0;
-while (i < 10) do
-    [DISK_MAP_TABLE + 10 + i] = -1;
-    i = i + 1; 
+
+// Wipe the entire table for all 16 processes (16 * 10 = 160 entries)
+while (i < 160) do
+    [DISK_MAP_TABLE + i] = -1;
+    i = i + 1;
 endwhile;
 
 [DISK_MAP_TABLE + 14] = 7;
