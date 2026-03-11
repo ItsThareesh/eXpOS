@@ -1,8 +1,8 @@
-alias currentPID R0;
-currentPID = [SYSTEM_STATUS_TABLE+1];
-
 // Push BP of current process on top of kernel stack
 multipush(BP);
+
+alias currentPID R0;
+currentPID = [SYSTEM_STATUS_TABLE+1];
 
 // Obtain process table corresponding to currentPID
 alias process_table_entry R1;
@@ -45,9 +45,13 @@ PTLR = [new_pcb_entry + 15];
 
 // If process is in CREATED state, then don't restore context. Just return to user program directly.
 if ([new_pcb_entry + 4] == CREATED) then
-    [new_pcb_entry + 4] = RUNNING;
     [new_pcb_entry + 9] = 0; // Set Mode Flag to zero
     SP = [new_pcb_entry + 13];
+    [new_pcb_entry + 4] = RUNNING;
+
+    // Set BP to value saved at beginning of Kernel Stack
+    // This is done in fork() system calls
+    BP = [[new_pcb_entry + 11]*512];
     ireturn;
 endif;
 
