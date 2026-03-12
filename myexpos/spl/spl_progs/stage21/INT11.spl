@@ -1,0 +1,73 @@
+alias userSP R5;
+userSP = SP;
+
+// Save the value of SP in the Process Table entry for that proccess
+[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16 + 13)] = SP; 
+
+// Set the value of SP to beginning of the kernel stack
+SP = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16 + 11)] * 512 - 1;
+
+alias syscallNumber R1;
+syscallNumber = [[PTBR + 2*((userSP-5)/512)]*512 + (userSP-5)%512];
+
+// Set the Mode Flag to syscallNumber
+[PROCESS_TABLE + [SYSTEM_STATUS_TABLE+1]*16 + 9] = syscallNumber;
+
+// Get PID System Call
+if (syscallNumber == 11) then
+    [[PTBR + 2*((userSP-1)/512)]*512 + (userSP-1)%512] = [SYSTEM_STATUS_TABLE+1];
+endif;
+
+// Get PPID System Call
+if (syscallNumber == 12) then
+    [[PTBR + 2*((userSP-1)/512)]*512 + (userSP-1)%512] = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE+1]*16) + 2];
+endif;
+
+// Wait System Call
+if (syscallNumber == 13) then
+    alias pid R2;
+    pid = [[PTBR + 2*(userSP-4)/512] * 512 + (userSP-4) % 512];
+
+    if (
+        pid == [SYSTEM_STATUS_TABLE + 1] || 
+        pid > 15 || pid < 0 || 
+        [PROCESS_TABLE + pid * 16 + 4] == TERMINATED
+    ) then
+        [[PTBR + 2*((userSP-1)/512)]*512 + (userSP-1)%512] = -1;
+    else
+        [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE+1]*16) + 4] = WAIT_PROCESS;
+        [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE+1]*16) + 5] = pid;
+
+        // Invoke the Scheduler
+        multipush(R0, R1, R2, R5);
+        call SCHEDULER;
+        multipop(R0, R1, R2, R5);
+
+        // Set Return Value as 0
+        [[PTBR + 2*((userSP-1)/512)]*512 + (userSP-1)%512] = 0;
+    endif;
+endif;
+
+// Signal System Call
+if (syscallNumber == 14) then
+    alias counter R2;
+    counter = 0;
+
+    // Loop through all process table entries, if there is a process with STATE as tuple
+    // (WAIT_PROCESS, current process PID) then change the STATE field to READY.
+    while (counter < MAX_PROC_NUM) do
+        if (
+            [PROCESS_TABLE + counter * 16 + 4] == WAIT_PROCESS && 
+            [PROCESS_TABLE + counter * 16 + 5] == [SYSTEM_STATUS_TABLE + 1]
+        ) then
+            [PROCESS_TABLE + counter * 16 + 4] = READY;
+        endif;
+
+        counter = counter + 1;
+    endwhile;
+endif;
+
+SP = userSP;
+[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE+1]*16) + 9] = 0;
+
+ireturn;
