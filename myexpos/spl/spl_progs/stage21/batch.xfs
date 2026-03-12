@@ -15,8 +15,10 @@ load --int=7 $HOME/myexpos/spl/spl_progs/stage21/INT7.xsm
 load --int=8 $HOME/myexpos/spl/spl_progs/stage21/INT8.xsm
 load --int=9 $HOME/myexpos/spl/spl_progs/stage21/INT9.xsm
 load --int=10 $HOME/myexpos/spl/spl_progs/stage21/INT10.xsm
+load --int=11 $HOME/myexpos/spl/spl_progs/stage21/INT11.xsm
+load --int=15 $HOME/myexpos/spl/spl_progs/stage21/INT15.xsm
 load --exhandler $HOME/myexpos/spl/spl_progs/stage21/EXHANDLER.xsm
 load --idle $HOME/myexpos/expl/samples/idle.xsm
-load --init $HOME/myexpos/expl/samples/stage21/fork.xsm
+load --init $HOME/myexpos/expl/samples/stage21/shell.xsm
 load --exec $HOME/myexpos/expl/samples/stage21/evennos.xsm
 load --exec $HOME/myexpos/expl/samples/stage21/oddnos.xsm

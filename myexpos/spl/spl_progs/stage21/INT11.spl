@@ -7,24 +7,24 @@ userSP = SP;
 // Set the value of SP to beginning of the kernel stack
 SP = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16 + 11)] * 512 - 1;
 
-alias syscallNumber R1;
-syscallNumber = [[PTBR + 2*((userSP-5)/512)]*512 + (userSP-5)%512];
+alias sysCallNumber R1;
+sysCallNumber = [[PTBR + 2*((userSP-5)/512)]*512 + (userSP-5)%512];
 
-// Set the Mode Flag to syscallNumber
-[PROCESS_TABLE + [SYSTEM_STATUS_TABLE+1]*16 + 9] = syscallNumber;
+// Set the Mode Flag to sysCallNumber
+[PROCESS_TABLE + [SYSTEM_STATUS_TABLE+1]*16 + 9] = sysCallNumber;
 
 // Get PID System Call
-if (syscallNumber == 11) then
+if (sysCallNumber == 11) then
     [[PTBR + 2*((userSP-1)/512)]*512 + (userSP-1)%512] = [SYSTEM_STATUS_TABLE+1];
 endif;
 
 // Get PPID System Call
-if (syscallNumber == 12) then
+if (sysCallNumber == 12) then
     [[PTBR + 2*((userSP-1)/512)]*512 + (userSP-1)%512] = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE+1]*16) + 2];
 endif;
 
 // Wait System Call
-if (syscallNumber == 13) then
+if (sysCallNumber == 13) then
     alias pid R2;
     pid = [[PTBR + 2*(userSP-4)/512] * 512 + (userSP-4) % 512];
 
@@ -49,7 +49,7 @@ if (syscallNumber == 13) then
 endif;
 
 // Signal System Call
-if (syscallNumber == 14) then
+if (sysCallNumber == 14) then
     alias counter R2;
     counter = 0;
 
