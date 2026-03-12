@@ -35,8 +35,8 @@ if (sysCallNumber == 13) then
     ) then
         [[PTBR + 2*((userSP-1)/512)]*512 + (userSP-1)%512] = -1;
     else
-        [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE+1]*16) + 4] = WAIT_PROCESS;
-        [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE+1]*16) + 5] = pid;
+        [PROCESS_TABLE + [SYSTEM_STATUS_TABLE+1]*16 + 4] = WAIT_PROCESS;
+        [PROCESS_TABLE + [SYSTEM_STATUS_TABLE+1]*16 + 5] = pid;
 
         // Invoke the Scheduler
         multipush(R0, R1, R2, R5);

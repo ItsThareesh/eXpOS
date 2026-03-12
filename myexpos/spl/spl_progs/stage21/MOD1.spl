@@ -65,6 +65,8 @@ if (functionNum == 3) then
             if ([PROCESS_TABLE + counter*16 + 2] == currentPID) then
                 [PROCESS_TABLE + counter*16 + 2] = -1;
             endif;
+
+            counter = counter + 1;
         endwhile;
     endif;
 
