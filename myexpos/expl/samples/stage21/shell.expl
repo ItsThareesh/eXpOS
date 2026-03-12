@@ -1,0 +1,38 @@
+int main() {
+    decl        
+        int a, pid, temp;
+        str progName;
+    enddecl
+    begin
+        a = 1;
+        
+        while (a == 1) do
+            temp = exposcall("Write", -2, "> File Name:");
+            temp = exposcall("Read", -1, progName);
+
+            if (progName == "shutdown") then
+                temp = exposcall("Shutdown");
+            endif;
+            
+            pid = exposcall("Fork");
+            
+            if (pid < 0) then
+                temp = exposcall("Write", -2, "FORK Failure");
+                continue;
+            endif;
+
+            if (pid != 0) then
+                temp = exposcall("Wait", pid);
+            else
+                temp = exposcall("Exec", progName);
+
+                if (temp != 0) then
+                    temp = exposcall("Write", -2, "EXEC Failure");
+                    break;
+                endif;
+            endif;
+        endwhile;
+
+        return 0;
+    end
+}
