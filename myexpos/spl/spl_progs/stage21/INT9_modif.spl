@@ -1,0 +1,50 @@
+//  set the mode for EXEC has system call as 9
+[PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 9] = 9;
+
+// Store the value of user SP in a register as we need it for further computations
+alias userSP R0;
+userSP = SP;
+ 
+// Save the value of SP in the Process Table entry for that proccess
+[PROCESS_TABLE + ( [SYSTEM_STATUS_TABLE + 1] * 16) + 13] = SP;
+
+// Set the value of SP to beginning of the kernel stack
+SP = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 11] * 512 - 1;
+
+alias physicalPageNum R1;
+alias offset R2;
+alias fileNameAddr R3;
+alias fileName R4;
+
+physicalPageNum = [PTBR + 2 * ((userSP - 4)/ 512)];
+offset = (userSP - 4) % 512;
+
+fileNameAddr = (physicalPageNum * 512) + offset;
+fileName = [fileNameAddr];
+
+// Search the memory copy of the inode table for the file
+alias inode_idx R5;
+inode_idx = 0;
+
+while (inode_idx < MAX_FILE_NUM) do
+    if ([INODE_TABLE + (inode_idx * 16) +  1] == fileName) then
+        break;
+    endif;
+    inode_idx = inode_idx + 1;
+endwhile;
+
+// Check if inode_idx = MAX_FILE_NUM || file type isn't EXEC
+if (inode_idx == MAX_FILE_NUM || [INODE_TABLE + (inode_idx * 16) + 0] != EXEC) then
+    alias physicalAddrRetVal R6;
+    physicalAddrRetVal = [PTBR + 2 * ((userSP-1)/512)] * 512 + (userSP - 1)%512;
+    [physicalAddrRetVal] = -1;
+
+    SP = userSP;
+else
+    call MOD_6;
+endif;
+
+// Reset the mode flag
+[PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1]*16 + 9] = 0;
+
+ireturn;

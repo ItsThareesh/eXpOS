@@ -17,6 +17,6 @@ load --int=9 $HOME/myexpos/spl/spl_progs/stage20/INT9.xsm
 load --int=10 $HOME/myexpos/spl/spl_progs/stage20/INT10.xsm
 load --exhandler $HOME/myexpos/spl/spl_progs/stage20/EXHANDLER.xsm
 load --idle $HOME/myexpos/expl/samples/idle.xsm
-load --init $HOME/myexpos/expl/samples/stage20/fork.xsm
+load --init $HOME/myexpos/expl/samples/stage20/forkll.xsm
 load --exec $HOME/myexpos/expl/samples/stage20/evennos.xsm
 load --exec $HOME/myexpos/expl/samples/stage20/oddnos.xsm

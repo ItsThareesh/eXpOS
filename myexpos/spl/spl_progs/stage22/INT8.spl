@@ -89,8 +89,18 @@ else
 
     // Copy the same contents from parent's PER_PROCESS_RESOURCE_TABLE
     while (offset < 512) do
+        // Copy both words of the each entry into the Process's Resource Table
         [[PROCESS_TABLE + (newPID*16) + 11]*512 + offset] = [[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE+1]*16) + 11]*512 + offset];
-        offset = offset + 1;
+        [[PROCESS_TABLE + (newPID*16) + 11]*512 + offset + 1] = [[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE+1]*16) + 11]*512 + offset + 1];
+
+        if ([[PROCESS_TABLE + (newPID*16 + 11)]*512 + offset] == SEMAPHORE) then
+            // [PROCESS_TABLE + (newPID*16 + 11)]*512 + offset] means the index of the current entry in resource table
+            // Add offset + 1 to get the index of the Sempahore Table Entry
+            // Multiply that by 4 because each entry in Semaphore Table occupies 4 words
+            // Increment the 1st index in the Semaphore Table to increment the PROCESS COUNT
+            [SEMAPHORE_TABLE + [[PROCESS_TABLE + (newPID*16 + 11)]*512 + offset + 1]*4 + 1] = [SEMAPHORE_TABLE + [[PROCESS_TABLE + (newPID*16 + 11)]*512 + offset + 1]*4 + 1] + 1;
+        endif;
+        offset = offset + 2;
     endwhile;
 
     // ------------ Configure DISK_MAP_TABLE ------------

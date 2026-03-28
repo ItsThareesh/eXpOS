@@ -119,36 +119,35 @@ else
         counter = counter + 2;
     endwhile;
 
-    // Copy Parent's User Stack to Child
-    alias oldStack R6;
-    alias newStack R7;
+    // // Copy Parent's User Stack to Child
+    // alias oldStack R6;
+    // alias newStack R7;
 
-    oldStack = [PTBR + 16];
-    newStack = [newPTBR + 16];
-    counter = 0;
+    // oldStack = [PTBR + 16];
+    // newStack = [newPTBR + 16];
+    // counter = 0;
     
-    while (counter < 512) do 
-        [newStack*512 + counter] = [oldStack*512 + counter];
-        counter = counter + 1;
-    endwhile;
+    // while (counter < 512) do 
+    //     [newStack*512 + counter] = [oldStack*512 + counter];
+    //     counter = counter + 1;
+    // endwhile;
 
-    oldStack = [PTBR + 18];
-    newStack = [newPTBR + 18];
-    counter = 0;
+    // oldStack = [PTBR + 18];
+    // newStack = [newPTBR + 18];
+    // counter = 0;
 
-    while (counter < 512) do 
-        [newStack*512 + counter] = [oldStack*512 + counter];
-        counter = counter + 1;
-    endwhile;
+    // while (counter < 512) do 
+    //     [newStack*512 + counter] = [oldStack*512 + counter];
+    //     counter = counter + 1;
+    // endwhile;
+
+    [[newPTBR + 16] * 512] = [[newPTBR + 8] * 512 + 1];
 
     // Store the value in the BP register of top of KPTR
     [[PROCESS_TABLE + (newPID*16) + 11]*512] = BP;
 
     // Store the PID of the child process for the parent
     [[PTBR + 2*(userSP-1)/512] * 512 + (userSP-1)%512] = newPID; 
-
-    // Store 0 as return value of the child process
-    [[newPTBR + 2*(userSP-1)/512]*512 + (userSP-1)%512] = 0;
 
     // Switch to Stack Pointer
     SP = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE+1]*16) + 13];
@@ -157,4 +156,4 @@ endif;
 // Reset Mode Flag
 [PROCESS_TABLE + [SYSTEM_STATUS_TABLE+1]*16 + 9] = 0;
 
-ireturn;
+return;

@@ -1,0 +1,19 @@
+int main() {
+    decl        
+        int pid, temp;
+        str progName;
+    enddecl
+    begin
+        temp = exposcall("Write", -2, "> File Name:");
+        temp = exposcall("Read", -1, progName);
+
+        if (progName == "shutdown") then
+            temp = exposcall("Shutdown");
+        endif;
+
+        temp = exposcall("Exec", progName);
+        temp = exposcall("Write", -2, "Thareesh");
+        
+        return 0;
+    end
+}
