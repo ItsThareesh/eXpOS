@@ -68,9 +68,10 @@ for file in "$TARGET_DIR"/*.spl; do
 
     output=$(./spl "$file" 2>&1)
 
-    if echo "$output" | grep -qi "error"; then
+    if [ -n "$output" ]; then
         echo -e "[ ${RED}FAILED${NC} ]"
-        echo -e " - ${RED}$output${NC}"
+        # Indent the error message for better readability
+        echo "$output" | sed 's/^/   /'
         failed=$((failed + 1))
         failed_files+=("$fname.spl")
     else
