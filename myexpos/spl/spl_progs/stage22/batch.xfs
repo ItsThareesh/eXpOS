@@ -16,6 +16,8 @@ load --int=8 $HOME/myexpos/spl/spl_progs/stage22/INT8.xsm
 load --int=9 $HOME/myexpos/spl/spl_progs/stage22/INT9.xsm
 load --int=10 $HOME/myexpos/spl/spl_progs/stage22/INT10.xsm
 load --int=11 $HOME/myexpos/spl/spl_progs/stage22/INT11.xsm
+load --int=13 $HOME/myexpos/spl/spl_progs/stage22/INT13.xsm
+load --int=14 $HOME/myexpos/spl/spl_progs/stage22/INT14.xsm
 load --int=15 $HOME/myexpos/spl/spl_progs/stage22/INT15.xsm
 load --exhandler $HOME/myexpos/spl/spl_progs/stage22/EXHANDLER.xsm
 load --idle $HOME/myexpos/expl/samples/idle.xsm

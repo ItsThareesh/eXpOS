@@ -14,18 +14,18 @@ SP = [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 11] * 512 - 1;
 
 // SemLock System Call
 if (syscallNumber == 19) then
-    alias semD R3; // Descriptor is the index of the Resource Table
-    semD = [[PTBR + 2 * ((userSP - 4) / 512)] * 512 + (userSP - 5) % 512];
+    alias semD R4; // Descriptor is the index of the Resource Table
+    semD = [[PTBR + 2 * ((userSP - 4) / 512)] * 512 + (userSP - 4) % 512];
 
     // Invalid Locking
     if (semD < 0 || semD > 7 || [resourceTable + semD * 2] != SEMAPHORE) then
         [[PTBR + 2 * ((userSP - 1) / 512)] * 512 + (userSP - 1) % 512] = -1;
     else
-        alias semIdx R4;
+        alias semIdx R5;
         semIdx = [resourceTable + semD * 2 + 1];
 
         // If locked by another process -> set to WAIT_SEMAPHORE and call SCHEDULER
-        while ([SEMAPHORE_TABLE + semID * 4] != -1 && [SEMAPHORE_TABLE + semID * 4] != [SYSTEM_STATUS_TABLE + 1]) do
+        while ([SEMAPHORE_TABLE + semIdx * 4] != -1 && [SEMAPHORE_TABLE + semIdx * 4] != [SYSTEM_STATUS_TABLE + 1]) do
             [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 4] = WAIT_SEMAPHORE;
             [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 5] = semIdx;
 
@@ -43,21 +43,21 @@ endif;
 
 // SemUnlock System Call
 if (syscallNumber == 20) then
-    alias semD R3; // Descriptor is the index of the Resource Table
-    semD = [[PTBR + 2 * ((userSP - 4) / 512)] * 512 + (userSP - 5) % 512];
+    alias semD R4; // Descriptor is the index of the Resource Table
+    semD = [[PTBR + 2 * ((userSP - 4) / 512)] * 512 + (userSP - 4) % 512];
 
     // Invalid Locking
-    if (semD < 0 || semD > 7 || [resourceTable + semD * 2] != SEMAPHORE)
+    if (semD < 0 || semD > 7 || [resourceTable + semD * 2] != SEMAPHORE) then
         [[PTBR + 2 * ((userSP - 1) / 512)] * 512 + (userSP - 1) % 512] = -1;
     else
-        alias semIdx R4;
+        alias semIdx R5;
         semIdx = [resourceTable + semD * 2 + 1];
 
         if ([SEMAPHORE_TABLE + semIdx * 4] != -1) then
             if ([SEMAPHORE_TABLE + semIdx * 4] == [SYSTEM_STATUS_TABLE + 1]) then
                 [SEMAPHORE_TABLE + semIdx * 4] = -1; // Unlock the Semaphore
 
-                alias counter R5;
+                alias counter R6;
                 counter = 0;
 
                 while (counter < MAX_PROC_NUM) do
@@ -67,6 +67,9 @@ if (syscallNumber == 20) then
 
                     counter = counter + 1;
                 endwhile;
+
+                // Set Return Value in the User Stack
+                [[PTBR + 2 * ((userSP - 1) / 512)] * 512 + (userSP - 1) % 512] = 0;
             else
                 // Set Return Value in the User Stack
                 [[PTBR + 2 * ((userSP - 1) / 512)] * 512 + (userSP - 1) % 512] = -2;

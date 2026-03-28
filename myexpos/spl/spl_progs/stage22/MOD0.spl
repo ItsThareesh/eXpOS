@@ -46,10 +46,10 @@ if (functionNum == 7) then
 
     if ([SEMAPHORE_TABLE + 4 * semIdx + 0] == currentPID) then
         // Set LOCKING_PID to -1.
-        [SEMAPHORE_TABLE + i * 4] = -1;
+        [SEMAPHORE_TABLE + counter * 4] = -1;
 
-        while (counter < MAX_PROC_NUM) then
-            if ([PROCESS_TABLE + (counter * 16) + 4] == WAIT_SEMAPHORE && [PROCESS_TABLE + (counter * 16) + 5] == semIndex) then
+        while (counter < MAX_PROC_NUM) do
+            if ([PROCESS_TABLE + (counter * 16) + 4] == WAIT_SEMAPHORE && [PROCESS_TABLE + (counter * 16) + 5] == semIdx) then
                 [PROCESS_TABLE + (counter * 16) + 4] = READY;
             endif;
 
