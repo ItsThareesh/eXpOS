@@ -1,0 +1,170 @@
+//  set the mode for FORK has system call as 8
+[PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 9] = 8;
+
+// Store the value of user SP in a register as we need it for further computations
+alias userSP R0;
+userSP = SP;
+
+// Save the value of SP in the Process Table entry for that proccess
+[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16 + 13)] = SP; 
+
+// Set the value of SP to beginning of the kernel stack
+SP = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16 + 11)] * 512 - 1;
+
+alias newPID R2; // Stores the PID of the new process
+
+multipush(R0);
+R1 = 1;
+call PROCESS_MANAGER;
+newPID = R0;
+multipop(R0);
+
+if (newPID == -1) then
+    // Store -1 as the return value in the stack
+    [[PTBR + 2 * (userSP-1)/512] * 512 + (userSP-1) % 512] = -1;
+
+    // Set back SP to userSP
+    SP = userSP;
+else
+    // Allocating Heap Pages to parent (if not already allocated in parent)
+    if ([PTBR + 4] == -1) then
+        multipush(R0, R1, R2);
+        R1 = 1;
+        call MEMORY_MANAGER;
+        [PTBR + 4] = R0;
+        [PTBR + 5] = "0110";
+
+        R1 = 1;
+        call MEMORY_MANAGER;
+        [PTBR + 6] = R0;
+        [PTBR + 7] = "0110"; 
+        multipop(R0, R1, R2);
+    endif;
+
+    alias newPTBR R3;
+    newPTBR = PAGE_TABLE_BASE + newPID * 20;
+
+    // Allocate Stack Pages
+    multipush(R0, R1, R2, R3);
+    R1 = 1;
+    call MEMORY_MANAGER;
+    [newPTBR + 16] = R0;
+    [newPTBR + 17] = "0110";
+
+    R1 = 1;
+    call MEMORY_MANAGER;
+    [newPTBR + 18] = R0;
+    [newPTBR + 19] = "0110";
+    multipop(R0, R1, R2, R3);
+
+    // Allocate a User Area Page
+    alias uapg R4;
+    multipush(R0, R1, R2, R3);
+    R1 = 1;
+    call MEMORY_MANAGER;
+    uapg = R0; // Stores the result from Get Free Page. Used when setting up PCB
+    multipop(R0, R1, R2, R3);
+
+    // Setup PCB
+    // Child is initialized with the same values of the parent except for the values 
+    // of TICK, PID, PPID, UAPG, KPTR, INPUT BUFFER, MODE FLAG, PTBR and PTLR
+    // Indices 1, 14 and 15 are finalized in Get PCB Entry in PROCESS_MANAGER
+    // counter guess no need to setup PTBR and PTLR? No clue
+    [PROCESS_TABLE + (newPID * 16) + 0] = 0; // TICK
+    [PROCESS_TABLE + (newPID * 16) + 2] = [SYSTEM_STATUS_TABLE + 1]; // PPID
+    [PROCESS_TABLE + (newPID * 16) + 3] = [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 3]; // USERID
+    [PROCESS_TABLE + (newPID * 16) + 4] = CREATED; // STATE (2 WORDS)
+    [PROCESS_TABLE + (newPID * 16) + 6] = [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 6]; // SWAP FLAG
+    [PROCESS_TABLE + (newPID * 16) + 7] = [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 7];  // INODE INDEX
+    [PROCESS_TABLE + (newPID * 16) + 8] = 0; // INPUT BUFFER
+    [PROCESS_TABLE + (newPID * 16) + 9] = 0; // MODE FLAG
+    [PROCESS_TABLE + (newPID * 16) + 10] = [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 10]; // UA Swap Status
+    [PROCESS_TABLE + (newPID * 16) + 11] = uapg; // UAPG
+    [PROCESS_TABLE + (newPID * 16) + 12] = 0; // KPTR
+    [PROCESS_TABLE + (newPID * 16) + 13] = [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 13]; // UPTR
+
+    // ------------ Configure PER_PROCESS_RESOURCE_TABLE ------------
+    alias offset R5;
+    offset = RESOURCE_TABLE_OFFSET; // Start at beginning of PER_PROCESS_RESOURCE_TABLE
+
+    // Copy the same contents from parent's PER_PROCESS_RESOURCE_TABLE
+    while (offset < 512) do
+        // Copy both words of the each entry into the Process's Resource Table
+        [[PROCESS_TABLE + (newPID*16) + 11]*512 + offset] = [[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE+1]*16) + 11]*512 + offset];
+        [[PROCESS_TABLE + (newPID*16) + 11]*512 + offset + 1] = [[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE+1]*16) + 11]*512 + offset + 1];
+
+        if ([[PROCESS_TABLE + (newPID*16 + 11)]*512 + offset] == SEMAPHORE) then
+            // [PROCESS_TABLE + (newPID*16 + 11)]*512 + offset] means the index of the current entry in resource table
+            // Add offset + 1 to get the index of the Sempahore Table Entry
+            // Multiply that by 4 because each entry in Semaphore Table occupies 4 words
+            // Increment the 1st index in the Semaphore Table to increment the PROCESS COUNT
+            [SEMAPHORE_TABLE + [[PROCESS_TABLE + (newPID*16 + 11)]*512 + offset + 1]*4 + 1] = [SEMAPHORE_TABLE + [[PROCESS_TABLE + (newPID*16 + 11)]*512 + offset + 1]*4 + 1] + 1;
+        endif;
+        offset = offset + 2;
+    endwhile;
+
+    // ------------ Configure DISK_MAP_TABLE ------------
+    alias counter R5;
+    counter = 0;
+
+    // Copy the same contents from parent's DISK_MAP_TABLE
+    while (counter < 10) do
+        [DISK_MAP_TABLE + newPID*10 + counter] = [DISK_MAP_TABLE + [SYSTEM_STATUS_TABLE+1]*10 + counter];
+        counter = counter + 1;
+    endwhile;
+
+    // ------------ Configure Page Table ------------
+    counter = 0;
+    
+    while (counter < 16) do
+        [newPTBR + counter] = [PTBR + counter];
+        [newPTBR + counter + 1] = [PTBR + counter + 1];
+
+        // Incrementing MEM_FREE_LIST
+        // Do counter need to do this for library as well? IDK
+        if ([newPTBR + counter] != -1) then
+            [MEMORY_FREE_LIST + [newPTBR + counter]] = [MEMORY_FREE_LIST + [newPTBR + counter]] + 1;
+        endif;
+
+        counter = counter + 2;
+    endwhile;
+
+    // Copy Parent's User Stack to Child
+    alias oldStack R6;
+    alias newStack R7;
+
+    oldStack = [PTBR + 16];
+    newStack = [newPTBR + 16];
+    counter = 0;
+    
+    while (counter < 512) do 
+        [newStack*512 + counter] = [oldStack*512 + counter];
+        counter = counter + 1;
+    endwhile;
+
+    oldStack = [PTBR + 18];
+    newStack = [newPTBR + 18];
+    counter = 0;
+
+    while (counter < 512) do 
+        [newStack*512 + counter] = [oldStack*512 + counter];
+        counter = counter + 1;
+    endwhile;
+
+    // Store the value in the BP register of top of KPTR
+    [[PROCESS_TABLE + (newPID*16) + 11]*512] = BP;
+
+    // Store the PID of the child process for the parent
+    [[PTBR + 2*(userSP-1)/512] * 512 + (userSP-1)%512] = newPID; 
+
+    // Store 0 as return value of the child process
+    [[newPTBR + 2*(userSP-1)/512]*512 + (userSP-1)%512] = 0;
+
+    // Switch to Stack Pointer
+    SP = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE+1]*16) + 13];
+endif;
+
+// Reset Mode Flag
+[PROCESS_TABLE + [SYSTEM_STATUS_TABLE+1]*16 + 9] = 0;
+
+ireturn;

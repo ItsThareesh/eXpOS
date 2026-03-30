@@ -1,0 +1,59 @@
+// Set the MODE FLAG field to the system call number 7 (read)
+[PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 9] = 7;
+
+alias userSP R0;
+userSP=SP;
+
+// Save the value of SP in the user SP field of Process Table entry of the process
+[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 13] = SP;
+
+// Set the value of SP to beginning of the kernel stack.
+SP = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 11] * 512 - 1;
+
+alias physicalPageNum R1;
+alias offset R2;
+alias fileDescPhysicalAddr R3;
+
+// userSP-4 is the logical addr. of the argument 1
+physicalPageNum = [PTBR + 2 * ((userSP - 4)/ 512)];
+offset = (userSP - 4) % 512;
+
+fileDescPhysicalAddr = (physicalPageNum * 512) + offset;
+
+alias fileDescriptor R4;
+fileDescriptor=[fileDescPhysicalAddr];
+
+if (fileDescriptor != -1) then
+    alias physicalAddrRetVal R5;
+    physicalAddrRetVal = ([PTBR + 2 * ((userSP - 1) / 512)] * 512) + ((userSP - 1) % 512);
+    [physicalAddrRetVal] = -1;
+else
+    alias wordAddr R5;
+
+    // userSP - 3 gives logical addr. of Argument 2
+    // print the value found at the physical memory location obtained by converting logical addr. of (userSP - 3)
+    wordAddr = [[PTBR + 2 * ((userSP - 3) / 512)] * 512 + ((userSP - 3) % 512)];
+
+    multipush(R0, R1, R2, R3, R4, R5);
+    
+    R1 = 4;
+    R2 = [SYSTEM_STATUS_TABLE+1];
+    R3 = wordAddr;
+    
+    call DEVICE_MANAGER;
+    
+    multipop(R0, R1, R2, R3, R4, R5);
+
+    // set the value at the return address to 0
+    alias physicalAddrRetVal R6;
+    physicalAddrRetVal = ([PTBR + 2 * (userSP-1)/512] * 512) + ((userSP - 1) % 512);
+
+    [physicalAddrRetVal] = 0;
+endif;
+
+SP = userSP;
+
+// Reset the MODE FLAG field in the process table to 0 
+[PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 9] = 0;
+
+ireturn;

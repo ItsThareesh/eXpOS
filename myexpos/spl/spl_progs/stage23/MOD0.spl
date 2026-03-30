@@ -1,0 +1,148 @@
+// RESOURCE_MANAGER
+
+alias functionNum R1;
+alias currentPID R2;
+
+// Acquire Disk
+if (functionNum == 3) then
+    while ([DISK_STATUS_TABLE + 0] == 1) do
+        [PROCESS_TABLE + 16*currentPID + 4] = WAIT_DISK;
+
+        multipush(R1, R2);
+        call SCHEDULER;
+        multipop(R1, R2);
+    endwhile;
+
+    [DISK_STATUS_TABLE + 0] = 1;
+    [DISK_STATUS_TABLE + 4] = currentPID;
+endif;
+
+// Acquire Inode
+if (functionNum == 4) then
+    alias inodeIdx R3;
+    
+    // Busy wait until the file is free
+    while ([FILE_STATUS_TABLE + inodeIdx*4] != -1) do
+        [PROCESS_TABLE + currentPID*16 + 4] = WAIT_FILE;
+        [PROCESS_TABLE + currentPID*16 + 5] = inodeIdx;
+
+        multipush(R1, R2, R3);
+        call SCHEDULER;
+        multipop(R1, R2, R3);
+    endwhile;
+
+    // If inode becomes invalid or file was deleted by the time the inode was acquired, return -1
+    if ([INODE_TABLE + inodeIdx*16 + 1] == -1) then
+        R0 = -1;
+    else
+        [FILE_STATUS_TABLE + inodeIdx*4] = currentPID;
+        R0 = 0;
+    endif;
+endif;
+
+// Release Inode
+if (functionNum == 5) then
+    alias inodeIdx R3;
+
+    if ([FILE_STATUS_TABLE + inodeIdx*4] != currentPID) then
+        R0 = -1;
+    else
+        // Free the Lock
+        [FILE_STATUS_TABLE + inodeIdx*4] = -1;
+
+        alias i R4;
+        i = 0;
+
+        while (i < MAX_PROC_NUM) do
+            if (
+                [PROCESS_TABLE + currentPID*16 + 4] == WAIT_FILE &&
+                [PROCESS_TABLE + currentPID*16 + 5] == inodeIdx
+            ) then
+                [PROCESS_TABLE + currentPID*16 + 4] = READY;
+            endif;
+
+            i = i + 1;
+        endwhile;
+
+        R0 = 0;
+    endif;
+endif;
+
+// Acquire Semaphore
+if (functionNum == 6) then
+    alias i R3;
+    i = 0;
+
+    while (i < MAX_SEM_COUNT && [SEMAPHORE_TABLE + i * 4 + 1] != 0) do
+        i = i + 1;
+    endwhile;
+
+    if (i == MAX_SEM_COUNT) then
+        R0 = -1;
+    else
+        // Set the PROCESS_COUNT to 1 and LOCKING_PID to -1.
+        [SEMAPHORE_TABLE + i * 4] = -1;
+        [SEMAPHORE_TABLE + i * 4 + 1] = 1;
+
+        R0 = i;
+    endif;
+endif;
+
+// Release Semaphore
+if (functionNum == 7) then
+    alias semIdx R3;
+
+    alias counter R4;
+    counter = 0;
+
+    if ([SEMAPHORE_TABLE + 4 * semIdx + 0] == currentPID) then
+        // Set LOCKING_PID to -1.
+        [SEMAPHORE_TABLE + counter * 4] = -1;
+
+        while (counter < MAX_PROC_NUM) do
+            if ([PROCESS_TABLE + (counter * 16) + 4] == WAIT_SEMAPHORE && [PROCESS_TABLE + (counter * 16) + 5] == semIdx) then
+                [PROCESS_TABLE + (counter * 16) + 4] = READY;
+            endif;
+
+            counter = counter + 1;
+        endwhile;
+    endif;
+endif;
+
+// Acquire Terminal
+if (functionNum == 8) then
+    while ([TERMINAL_STATUS_TABLE + 0] == 1) do
+        // Change the state of the current process to WAIT_TERMINAL
+        [PROCESS_TABLE + 16*currentPID + 4] = WAIT_TERMINAL;
+
+        multipush(R0, R1, R2);
+        call SCHEDULER;
+        multipop(R0, R1, R2);
+    endwhile;
+
+    [TERMINAL_STATUS_TABLE + 0] = 1;
+    [TERMINAL_STATUS_TABLE + 1] = currentPID;
+endif;
+
+// Release Terminal{}
+if (functionNum == 9) then
+    if (currentPID != [TERMINAL_STATUS_TABLE + 1]) then
+        R0 = -1;
+        return;
+    endif;
+
+    [TERMINAL_STATUS_TABLE + 0] = 0;
+
+    alias idx R3;
+    idx = 1;
+    while (idx < 16) do
+        if ([PROCESS_TABLE + (16 * idx) + 4] == WAIT_TERMINAL) then
+            [PROCESS_TABLE + (16 * idx) + 4] = READY;
+        endif;
+        idx = idx + 1;
+    endwhile;
+
+    R0 = 0;
+endif;
+
+return;

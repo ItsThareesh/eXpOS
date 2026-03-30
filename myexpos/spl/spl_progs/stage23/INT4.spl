@@ -1,0 +1,183 @@
+alias userSP R1;
+userSP = SP;
+
+alias currentPID R2;
+currentPID = [SYSTEM_STATUS_TABLE + 1];
+
+alias currentPCB R3;
+currentPCB = PROCESS_TABLE + currentPID * 16;
+
+alias syscallNumber R4;
+syscallNumber = [[PTBR + 2 * ((userSP - 5) / 512)] * 512 + (userSP - 5) % 512];
+
+// Set the Mode Flag
+[currentPCB + 9] = syscallNumber;
+
+// Change to kernel stack
+[currentPCB + 13] = SP;
+SP = [currentPCB + 11] * 512 - 1;
+
+// Create System Call
+if (syscallNumber == 1) then
+    alias fileName R5;
+    fileName = [[PTBR + 2 * ((userSP - 4) / 512)] * 512 + (userSP - 4) % 512];
+
+    alias idx R6;
+    idx = 0;
+
+    while (idx < MAX_FILE_NUM && [INODE_TABLE + idx * 16 + 1] != fileName) do
+        idx = idx + 1;
+    endwhile;
+
+    // If file exists already, then return 0
+    if (idx != MAX_FILE_NUM) then
+        [[PTBR + 2 * ((userSP - 1) / 512)] * 512 + (userSP - 1) % 512] = 0;
+    else
+        idx = 0;
+
+        // Find a free entry in the INODE_TABLE
+        while (idx < MAX_FILE_SIZE && [INODE_TABLE + idx * 16 + 1] != -1) do
+            idx = idx + 1;
+        endwhile;
+
+        // If no free entry found, return -1
+        if (idx == MAX_FILE_NUM) then
+            [[PTBR + 2 * ((userSP - 1) / 512)] * 512 + (userSP - 1) % 512] = -1;
+        else
+            alias permission R7;
+            permission = [[PTBR + 2 * ((userSP - 3) / 512)] * 512 + (userSP - 3) % 512];
+
+            alias inodeEntry R8;
+            inodeEntry = INODE_TABLE + idx * 16;
+
+            [inodeEntry + 0] = DATA;
+            [inodeEntry + 1] = fileName;
+            [inodeEntry + 2] = 0;
+            [inodeEntry + 3] = [currentPCB + 3];
+            [inodeEntry + 4] = permission;
+            
+            // Set Data Blocks to -1
+            [inodeEntry + 8] = -1;
+            [inodeEntry + 9] = -1;
+            [inodeEntry + 10] = -1;
+            [inodeEntry + 11] = -1;
+
+            alias rootFileEntry R9;
+            rootFileEntry = ROOT_FILE + idx * 8;
+
+            [rootFileEntry + 0] = fileName;
+            [rootFileEntry + 1] = 0;
+            [rootFileEntry + 2] = DATA;
+            [rootFileEntry + 3] = [USER_TABLE + [currentPCB + 3] * 2];
+            [rootFileEntry + 4] = permission;
+
+            [[PTBR + 2 * ((userSP - 1) / 512)] * 512 + (userSP - 1) % 512] = 0;
+        endif;
+    endif;
+endif;
+
+// Delete System Call
+if (syscallNumber == 4) then
+    alias fileName R5;
+    fileName = [[PTBR + 2 * ((userSP - 4) / 512)] * 512 + (userSP - 4) % 512];
+
+    alias idx R6;
+    idx = 0;
+
+    // Find the entry in the INODE_TABLE
+    while (idx < MAX_FILE_NUM && [INODE_TABLE + idx * 16 + 1] != fileName) do
+        idx = idx + 1;
+    endwhile;
+
+    // If file not found, return 0
+    if (idx == MAX_FILE_NUM) then
+        [[PTBR + 2 * ((userSP - 1) / 512)] * 512 + (userSP - 1) % 512] = 0;
+    else
+        alias inodeEntry R7;
+        inodeEntry = INODE_TABLE + idx * 16;
+
+        // If not data file, then return -1
+        if ([inodeEntry] != DATA) then
+            [[PTBR + 2 * ((userSP - 1) / 512)] * 512 + (userSP - 1) % 512] = -1;
+        else
+            // If current user isn't root and doesn't own the file
+            if ([currentPCB + 3] != -1 && [inodeEntry + 3] != [currentPCB + 3]) then
+                [[PTBR + 2 * ((userSP - 1) / 512)] * 512 + (userSP - 1) % 512] = -1;
+            else
+                // Acquire Inode by invoking RESOURCE_MANAGER
+                multipush(R0, R1, R2, R3, R4, R5, R6, R7);
+                R1 = 4;
+                R2 = currentPID;
+                R3 = idx;
+                call RESOURCE_MANAGER;
+                multipop(R0, R1, R2, R3, R4, R5, R6, R7);
+
+                if ([FILE_STATUS_TABLE + idx*4 + 1] != -1) then
+                    // Release Inode by invoking RESOURCE_MANAGER
+                    multipush(R0, R1, R2, R3, R4, R5, R6, R7);
+                    R1 = 5;
+                    R2 = currentPID;
+                    R3 = idx;
+                    call RESOURCE_MANAGER;
+                    multipop(R0, R1, R2, R3, R4, R5, R6, R7);
+
+                    [[PTBR + 2 * ((userSP - 1) / 512)] * 512 + (userSP - 1) % 512] = -2;
+                else
+                    alias blockNum R8;
+                    blockNum = inodeEntry + 8; // Start of Data Blocks
+
+                    while (blockNum < inodeEntry + 12) do
+                        if ([blockNum] == -1) then
+                            break;
+                        endif;
+
+                        // Refer to https://exposnitc.github.io/os_design-files/mem_ds.html#buffer_table for the formula
+                        alias bufferIdx R9;
+                        bufferIdx = [blockNum] % MAX_BUFFER;
+
+                        // If Buffer Table contains holds this block, reset the Dirty Bit in the buffer
+                        if (
+                            [BUFFER_TABLE + bufferIdx*4] == blockNum &&
+                            [BUFFER_TABLE + bufferIdx*4 + 1] == 1
+                        ) then
+                            [BUFFER_TABLE + bufferIdx*4 + 1] = 0;
+                        endif;
+
+                        // Call Release Block from MEMORY_MANAGER
+                        multipush(R0, R1, R2, R3, R4, R5, R6, R7, R8, R9);
+                        R1 = 4;
+                        R2 = [blockNum];
+                        call MEMORY_MANAGER;
+                        multipop(R0, R1, R2, R3, R4, R5, R6, R7, R8, R9);
+
+                        blockNum = blockNum + 1;
+                    endwhile;
+
+                    // Invalidate the entry in the Inode Table
+                    [inodeEntry + 1] = -1;
+
+                    // Invalidate the entry in the Root File
+                    alias rootFileEntry R10;
+                    rootFileEntry = ROOT_FILE + idx * 8;
+
+                    [rootFileEntry] = -1; 
+
+                    multipush(R0, R1, R2, R3, R4, R5, R6, R7, R8, R9, R10);
+                    R1 = 5;
+                    R2 = currentPID;
+                    R3 = idx;
+                    call RESOURCE_MANAGER;
+                    multipop(R0, R1, R2, R3, R4, R5, R6, R7, R8, R9, R10);
+
+                    [[PTBR + 2 * ((userSP - 1) / 512)] * 512 + (userSP - 1) % 512] = 0;
+                endif;
+            endif;
+        endif;
+    endif;
+endif;
+
+// Reset the Mode Flag
+[currentPCB + 9] = 0;
+SP = userSP;
+
+ireturn;

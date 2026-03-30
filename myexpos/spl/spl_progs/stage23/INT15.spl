@@ -1,0 +1,43 @@
+alias currentPCB R1;
+currentPCB = PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16;
+
+[currentPCB + 13] = SP;
+SP = [currentPCB + 11] * 512 - 1;
+
+// Set the Mode Flag
+[currentPCB + 9] = 21;
+
+// If Current Process isn't SHELL or Current User isn't Root User, then return to User Mode
+if ([SYSTEM_STATUS_TABLE + 1] != 1 && [currentPCB + 3] != 1) then
+    SP = [currentPCB + 13];
+    [currentPCB + 9] = 0;
+    ireturn;
+else
+    multipush(R1);
+    // Store the Inode Table
+    R1 = 1;
+    R2 = [SYSTEM_STATUS_TABLE + 1];
+    R3 = 59;
+    R4 = 3;
+    call DEVICE_MANAGER;
+
+    // Store the User Table
+    R1 = 1;
+    R2 = [SYSTEM_STATUS_TABLE + 1];
+    R3 = 60;
+    R4 = 4;
+    call DEVICE_MANAGER;
+
+    // Store the Root File
+    R1 = 1;
+    R2 = [SYSTEM_STATUS_TABLE + 1];
+    R3 = 62;
+    R4 = 5;
+    call DEVICE_MANAGER;
+    multipop(R1);
+
+    print "-------------";
+    print "Shutting Down";
+    print "-------------";
+    halt;
+endif;
