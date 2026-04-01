@@ -118,6 +118,7 @@ else
     while(counter < 512) do
         [newResourceTable + counter] = [oldResourceTable + counter];
         [newResourceTable + counter + 1] = [oldResourceTable + counter + 1];
+        
         if ([newResourceTable + counter] == 1) then 
             alias temp R12;
             temp = SEMAPHORE_TABLE + [newResourceTable + counter + 1] * 4 + 1;
@@ -129,6 +130,7 @@ else
                 [temp] = [temp] + 1;
             endif;
         endif;
+        
         counter = counter + 2;
     endwhile;
 

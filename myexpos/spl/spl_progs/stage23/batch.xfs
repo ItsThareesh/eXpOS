@@ -30,3 +30,4 @@ load --exec $HOME/myexpos/expl/samples/stage21/fork.xsm
 load --exec $HOME/myexpos/expl/samples/stage22/assg1.xsm
 load --exec $HOME/myexpos/expl/samples/stage23/touchF.xsm
 load --exec $HOME/myexpos/expl/samples/stage23/rmFile.xsm
+load --data  $HOME/myexpos/expl/samples/stage24/sample.dat

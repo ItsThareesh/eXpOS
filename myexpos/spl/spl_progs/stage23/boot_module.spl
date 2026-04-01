@@ -161,7 +161,7 @@ count = 0;
 
 while (count < MAX_FILE_NUM) do
     [FILE_STATUS_TABLE + count * 4 + 0] = -1;
-    [FILE_STATUS_TABLE + count * 4 + 1] = 0;
+    [FILE_STATUS_TABLE + count * 4 + 1] = -1;
     count = count + 1;
 endwhile;
 

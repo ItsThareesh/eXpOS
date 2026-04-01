@@ -12,7 +12,8 @@ int main() {
         if (temp == 0) then
             temp = exposcall("Write", -2, "File Deleted");
         else
-            temp = exposcall("Write", -2, "Error Deletion");
+            temp = exposcall("Write", -2, temp);
+            temp = exposcall("Write", -2, "EC No.");
         endif;
 
         return 0;

@@ -27,3 +27,4 @@ load --exec $HOME/myexpos/expl/samples/stage21/oddnos.xsm
 load --exec $HOME/myexpos/expl/samples/stage21/pid.xsm
 load --exec $HOME/myexpos/expl/samples/stage21/fork.xsm
 load --exec $HOME/myexpos/expl/samples/stage22/assg1.xsm
+load --exec $HOME/myexpos/expl/samples/stage22/assg3.xsm
