@@ -93,6 +93,9 @@ loadi(60,4);
 // Load DISK_FREE_LIST from disk to memory
 loadi(61,2);
 
+// Load Root File from disk to memory
+loadi(62,5);
+
 // Load Shared library to memory
 loadi(63,13);
 loadi(64,14);

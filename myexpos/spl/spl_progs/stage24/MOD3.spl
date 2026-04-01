@@ -61,6 +61,7 @@ if (functionNum == 2) then
 endif;
 
 // Open File
+// Function: Validates file, locks inode, updates File Status Table and/or Open File Table, relases inode & returns Index of open File Table Entry
 if (functionNum == 3) then
     alias fileName R2; 
 
@@ -79,6 +80,7 @@ if (functionNum == 3) then
     endif;
 
     // Acquire Inode
+    // Invoke Resource Manager (Module 0) to prevent concurrent deletion/access
     multipush(R1, R2, R3);
     R1 = 4;
     R3 = inodeIdx;
@@ -107,6 +109,8 @@ if (functionNum == 3) then
     openFileTableIdx = 0;
 
     // Find entry in Open File Table
+    // Global Open File Table tracks all "active sessions" across the OS
+    // Entry format: [Inode Index, Open Instance Count, LSeek, Unused]
     while (openFileTableIdx < MAX_OPENFILE_NUM && [OPEN_FILE_TABLE + openFileTableIdx * 4] != -1) do
         openFileTableIdx = openFileTableIdx + 1;
     endwhile;
@@ -127,6 +131,7 @@ if (functionNum == 3) then
     alias openFileTableEntry R5;
     openFileTableEntry = OPEN_FILE_TABLE + openFileTableIdx * 4;
 
+    // We can only delete a data file, so we don't need to maintain a file status table entry for Root File
     if (fileName == "root") then
         [openFileTableEntry] = INODE_ROOT;
     else
@@ -142,10 +147,11 @@ if (functionNum == 3) then
         [openFileTableEntry] = inodeIdx;
     endif;
 
-    [openFileTableEntry + 1] = 1;
-    [openFileTableEntry + 2] = 0;
+    [openFileTableEntry + 1] = 1; // Open Instance Count = 1
+    [openFileTableEntry + 2] = 0; // LSeek (Seek Pointer) = 0 (Start of file)
 
     // Release Inode
+    // Operation successful, unlock the file for other processes
     multipush(R0, R1, R2, R3, R4, R5, R6);
     R1 = 5;
     R3 = inodeIdx;
@@ -176,6 +182,7 @@ if (functionNum == 4) then
         [openFileTable + 1] = -1;
         [openFileTable + 2] = -1;
 
+        // Root file doesn't have any entry in the file status table, since we are only allowed to read it (no modifications)
         if (inodeIdx != INODE_ROOT) then
             [FILE_STATUS_TABLE + inodeIdx * 4 + 1] = [FILE_STATUS_TABLE + inodeIdx * 4 + 1] - 1;
 

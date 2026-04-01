@@ -1,56 +1,58 @@
 // storing user stack pointer in process table
-[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE+1]*16) + 13] = SP;
 alias userSP R0;
 userSP = SP;
+
+[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE+1]*16) + 13] = SP;
 
 // setting stack pointer to kernel stack
 SP = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE+1]*16) + 11]*512 - 1;
 
 // getting the system call number from the top of the stack
-alias callNumber R1;
-callNumber = [[PTBR + 2*(userSP-5)/512]*512 + (userSP-5)%512];
+alias syscallNum R1;
+syscallNum = [[PTBR + 2*(userSP-5)/512]*512 + (userSP-5)%512];
 
 // setting the system call number
-[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE+1]*16) + 9] = callNumber;
+[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE+1]*16) + 9] = syscallNum;
 
 alias returnAddress R2;
 returnAddress = [PTBR + 2*(userSP-1)/512]*512 + (userSP-1)%512;
 
-// --- Open System Call ---  
-// Purpose: Opens a file for reading or writing, returning a file descriptor.  
-// Arguments:  
-//   - Filename (String)  
-// Return Value:  
-//   -  File Descriptor (Integer): Success  
-//   - -1: File not found or not a valid file  
-//   - -2: System has reached max open files  
-//   - -3: Process has reached resource limit  
-// Implementation:  
-//   - Set `MODE_FLAG` in Process Table entry to 2 (indicating Open system call).  
-//   - Switch to Kernel Stack, saving the user stack pointer (SP).  
-//   - Locate a free Per-Process Resource Table entry.  
-//   - Call `open()` function from File Manager to get an Open File Table entry.  
-//   - If `open()` fails, return the error code.  
-//   - Update the Per-Process Resource Table entry with the Open File Table index.  
-//   - Reset `MODE_FLAG` in Process Table entry to 0.  
-//   - Restore stack pointer (SP) and return the file descriptor index.  
-if (callNumber == 2) then
-    breakpoint;
-    alias counter R3;
+// --- Open System Call ---
+// Purpose: Opens a file for reading or writing, returning a file descriptor.
+// Arguments:
+//   - Filename (String)
+// Return Value:
+//   -  File Descriptor (Integer): Success
+//   - -1: File not found or not a valid file
+//   - -2: System has reached max open files
+//   - -3: Process has reached resource limit
+// Implementation:
+//   - Set `MODE_FLAG` in Process Table entry to 2 (indicating Open system call).
+//   - Switch to Kernel Stack, saving the user stack pointer (SP).
+//   - Locate a free Per-Process Resource Table entry.
+//   - Call `open()` function from File Manager to get an Open File Table entry.
+//   - If `open()` fails, return the error code.
+//   - Update the Per-Process Resource Table entry with the Open File Table index.
+//   - Reset `MODE_FLAG` in Process Table entry to 0.
+//   - Restore stack pointer (SP) and return the file descriptor index.
+if (syscallNum == 2) then
+    alias idx R3;
+    idx = 0;
+
     alias resourceTable R4;
-    counter = 0;
     resourceTable = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE+1]*16) + 11]*512 + RESOURCE_TABLE_OFFSET;
     
     // look for free per process table entry
-    while (counter < 8) do
-        if ([resourceTable + counter * 2 + 0] == -1) then 
+    while (idx < 8) do
+        if ([resourceTable + idx * 2 + 0] == -1) then 
             break;
         endif;
-        counter = counter+1;
+        
+        idx = idx+1;
     endwhile;
     
     // if no table is free, return -3
-    if (counter == 16) then
+    if (idx == 16) then
         [returnAddress] = -3;
     else
         alias fileName R5;
@@ -65,39 +67,38 @@ if (callNumber == 2) then
         fileTableEntry = R0;
         multipop(R0, R1, R2, R3, R4, R5);
 
-        if (fileTableEntry < 0) then 
+        if (fileTableEntry < 0) then
             [returnAddress] = fileTableEntry;
         else
             // setting the per process resource table
-            [resourceTable + counter*2 + 0] = FILE;
-            [resourceTable + counter*2 + 1] = fileTableEntry;
-            [returnAddress] = counter;
+            [resourceTable + idx*2 + 0] = FILE;
+            [resourceTable + idx*2 + 1] = fileTableEntry;
+            
+            [returnAddress] = idx;
         endif;
     endif;
-    breakpoint;
 endif;
 
-// --- Close System Call ---  
-// Purpose: Closes an open file and invalidates the file descriptor.  
-// Arguments:  
+// --- Close System Call ---
+// Purpose: Closes an open file and invalidates the file descriptor.
+// Arguments:
 //   - File Descriptor (Integer)  
-// Return Value:  
-//   -  0: Success  
-//   - -1: Invalid file descriptor  
-// Implementation:  
-//   - Set `MODE_FLAG` in Process Table entry to 3 (indicating Close system call).  
-//   - Switch to Kernel Stack, saving the user stack pointer (SP).  
-//   - Validate file descriptor (must be in range 0-7). If invalid, return -1.  
-//   - Locate the Per-Process Resource Table using PID from System Status Table.  
-//   - Verify if the resource table entry corresponds to a valid file. If not, return -1.  
-//   - Retrieve the Open File Table index from the resource table entry.  
-//   - Call `close()` function in File Manager with Open File Table index.  
-//   - Invalidate the Per-Process Resource Table entry.  
-//   - Reset `MODE_FLAG` in Process Table entry to 0.  
-//   - Restore stack pointer (SP) and switch back to user stack.  
-//   - Return 0 on success.  
-if (callNumber == 3) then 
-    breakpoint;
+// Return Value:
+//   -  0: Success
+//   - -1: Invalid file descriptor
+// Implementation:
+//   - Set `MODE_FLAG` in Process Table entry to 3 (indicating Close system call).
+//   - Switch to Kernel Stack, saving the user stack pointer (SP).
+//   - Validate file descriptor (must be in range 0-7). If invalid, return -1.
+//   - Locate the Per-Process Resource Table using PID from System Status Table.
+//   - Verify if the resource table entry corresponds to a valid file. If not, return -1.
+//   - Retrieve the Open File Table index from the resource table entry.
+//   - Call `close()` function in File Manager with Open File Table index.
+//   - Invalidate the Per-Process Resource Table entry.
+//   - Reset `MODE_FLAG` in Process Table entry to 0.
+//   - Restore stack pointer (SP) and switch back to user stack.
+//   - Return 0 on success.
+if (syscallNum == 3) then 
     alias fileDescriptor R3;
     fileDescriptor = [[PTBR + 2*(userSP-4)/512]*512 + (userSP-4)%512];
     
@@ -127,7 +128,6 @@ if (callNumber == 3) then
             [returnAddress] = 0;
         endif;
     endif;
-    breakpoint;
 endif;
 
 [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE+1]*16) + 9] = 0;

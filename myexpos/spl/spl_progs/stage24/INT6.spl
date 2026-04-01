@@ -23,7 +23,7 @@ fileDescPhysicalAddr = (physicalPageNum * 512) + offset;
 alias fileDescriptor R4;
 fileDescriptor=[fileDescPhysicalAddr];
 
-// Read from terminal
+// Read from Terminal
 if (fileDescriptor == -1) then
     alias wordAddr R5;
 
@@ -45,6 +45,8 @@ if (fileDescriptor == -1) then
 
     [physicalAddrRetVal] = 0;
 else
+    // Read from File
+
     alias physicalAddrRetVal R5;
     physicalAddrRetVal = ([PTBR + 2 * ((userSP - 1) / 512)] * 512) + ((userSP - 1) % 512);
 
@@ -83,24 +85,26 @@ else
 
                 alias wordAddr R10; // This should be pointing to the actual location in physical memory
 
+                // userSP - 3 gives logical addr. of Argument 2
+                // wordAddr represents the logical address of the variable (buffer) where the user
+                // wants to store the data being read from the terminal
                 wordAddr = [[PTBR + 2 * ((userSP - 3) / 512)] * 512 + ((userSP - 3) % 512)]; // To "read" the argument the user passed to the function
                 wordAddr = [PTBR + 2*(wordAddr/512)]*512 + wordAddr % 512; // The Buffer Address in Physical Memory
 
+                // Root file has total 60 entries which is the MAX_FILE_NUM in eXpOS 
+                // Each entry occupying 8 words consuming a total of 480 words
+                // System Specification mentions that the last 32 words are unallocated
                 if (inodeIdx == INODE_ROOT) then
                     if ([lseekPos] == 480) then
                         [physicalAddrRetVal] = -2;
                     else
                         [wordAddr] = [ROOT_FILE + [lseekPos]];
+                        
                         // Increment the lseek position
                         [lseekPos] = [lseekPos] + 1;
                         [physicalAddrRetVal] = 0;
                     endif;
                 else
-                    // print "------------------";
-                    // print [lseekPos];
-                    // print [INODE_TABLE + inodeIdx*16 + 2];
-                    // print "------------------";
-
                     // If lseek position is same as the file size
                     if ([lseekPos] == [INODE_TABLE + inodeIdx*16 + 2]) then
                         // Release Inode

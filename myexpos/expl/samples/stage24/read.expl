@@ -9,6 +9,7 @@ int main() {
     begin
         temp = exposcall("Write", -2, "file name?");
         temp = exposcall("Read", -1, fileName);
+        
         fileDesc = exposcall("Open", fileName);
         
         stopRead = 0;
