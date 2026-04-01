@@ -33,5 +33,6 @@ load --exec $HOME/myexpos/expl/samples/stage22/assg1.xsm
 load --exec $HOME/myexpos/expl/samples/stage23/touchF.xsm
 load --exec $HOME/myexpos/expl/samples/stage23/rmFile.xsm
 load --exec $HOME/myexpos/expl/samples/stage24/read.xsm
+load --exec $HOME/myexpos/expl/samples/stage24/assg2.xsm
 load --data $HOME/myexpos/expl/samples/stage24/sample.dat
 load --data $HOME/myexpos/expl/samples/stage24/numbers.dat

@@ -53,27 +53,26 @@ if (syscallNumber == 20) then
         alias semIdx R5;
         semIdx = [resourceTable + semD * 2 + 1];
 
-        if ([SEMAPHORE_TABLE + semIdx * 4] != -1) then
-            if ([SEMAPHORE_TABLE + semIdx * 4] == [SYSTEM_STATUS_TABLE + 1]) then
-                [SEMAPHORE_TABLE + semIdx * 4] = -1; // Unlock the Semaphore
+        // Semaphore should be locked by the process invoking the release sempahore syscall
+        if ([SEMAPHORE_TABLE + semIdx * 4] == [SYSTEM_STATUS_TABLE + 1]) then
+            [SEMAPHORE_TABLE + semIdx * 4] = -1; // Unlock the Semaphore
 
-                alias counter R6;
-                counter = 0;
+            alias counter R6;
+            counter = 0;
 
-                while (counter < MAX_PROC_NUM) do
-                    if ([PROCESS_TABLE + 16 * counter + 4] == WAIT_SEMAPHORE && [PROCESS_TABLE + 16 * counter + 5] == semIdx) then
-                        [PROCESS_TABLE + 16 * counter + 4] = READY;
-                    endif;
+            while (counter < MAX_PROC_NUM) do
+                if ([PROCESS_TABLE + 16 * counter + 4] == WAIT_SEMAPHORE && [PROCESS_TABLE + 16 * counter + 5] == semIdx) then
+                    [PROCESS_TABLE + 16 * counter + 4] = READY;
+                endif;
 
-                    counter = counter + 1;
-                endwhile;
+                counter = counter + 1;
+            endwhile;
 
-                // Set Return Value in the User Stack
-                [[PTBR + 2 * ((userSP - 1) / 512)] * 512 + (userSP - 1) % 512] = 0;
-            else
-                // Set Return Value in the User Stack
-                [[PTBR + 2 * ((userSP - 1) / 512)] * 512 + (userSP - 1) % 512] = -2;
-            endif;
+            // Set Return Value in the User Stack
+            [[PTBR + 2 * ((userSP - 1) / 512)] * 512 + (userSP - 1) % 512] = 0;
+        else
+            // Set Return Value in the User Stack
+            [[PTBR + 2 * ((userSP - 1) / 512)] * 512 + (userSP - 1) % 512] = -2;
         endif;
     endif;
 endif;
