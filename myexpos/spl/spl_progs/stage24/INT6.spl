@@ -1,0 +1,159 @@
+// Set the MODE FLAG field to the system call number 7 (read)
+[PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 9] = 7;
+
+alias userSP R0;
+userSP=SP;
+
+// Save the value of SP in the user SP field of Process Table entry of the process
+[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 13] = SP;
+
+// Set the value of SP to beginning of the kernel stack.
+SP = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 11] * 512 - 1;
+
+alias physicalPageNum R1;
+alias offset R2;
+alias fileDescPhysicalAddr R3;
+
+// userSP-4 is the logical addr. of the Argument 1
+physicalPageNum = [PTBR + 2 * ((userSP - 4)/ 512)];
+offset = (userSP - 4) % 512;
+
+fileDescPhysicalAddr = (physicalPageNum * 512) + offset;
+
+alias fileDescriptor R4;
+fileDescriptor=[fileDescPhysicalAddr];
+
+// Read from terminal
+if (fileDescriptor == -1) then
+    alias wordAddr R5;
+
+    // userSP - 3 gives logical addr. of Argument 2
+    // wordAddr represents the logical address of the variable (buffer) where the user
+    // wants to store the data being read from the terminal
+    wordAddr = [[PTBR + 2 * ((userSP - 3) / 512)] * 512 + ((userSP - 3) % 512)];
+
+    multipush(R0, R1, R2, R3, R4, R5);
+    R1 = 4;
+    R2 = [SYSTEM_STATUS_TABLE+1];
+    R3 = wordAddr;
+    call DEVICE_MANAGER;
+    multipop(R0, R1, R2, R3, R4, R5);
+
+    // set the value at the return address to 0
+    alias physicalAddrRetVal R6;
+    physicalAddrRetVal = ([PTBR + 2 * (userSP-1)/512] * 512) + ((userSP - 1) % 512);
+
+    [physicalAddrRetVal] = 0;
+else
+    alias physicalAddrRetVal R5;
+    physicalAddrRetVal = ([PTBR + 2 * ((userSP - 1) / 512)] * 512) + ((userSP - 1) % 512);
+
+    if (fileDescriptor < 0 || fileDescriptor > 7) then
+        [physicalAddrRetVal] = -1;
+    else
+        alias resourceTableEntry R6;
+        resourceTableEntry = [PROCESS_TABLE + [SYSTEM_STATUS_TABLE+1]*16 + 11]*512 + RESOURCE_TABLE_OFFSET + fileDescriptor*2;
+
+        if ([resourceTableEntry] == SEMAPHORE || [resourceTableEntry] == -1) then
+            [physicalAddrRetVal] = -1;
+        else
+            alias openFileTableIdx R7; // Index of Open File Table Entry
+            openFileTableIdx = [resourceTableEntry + 1];
+
+            alias inodeIdx R8; // Access the entry of Open File Table to retrieve the Inode Index
+            inodeIdx = [OPEN_FILE_TABLE + openFileTableIdx*4];
+
+            alias returnValue R9;
+
+            // Acquire the Inode
+            multipush(R0, R1, R2, R3, R4, R5, R6, R7, R8);
+            R1 = 4;
+            R2 = [SYSTEM_STATUS_TABLE + 1];
+            R3 = inodeIdx;
+            call RESOURCE_MANAGER;
+
+            returnValue = R0; // Save return value
+            multipop(R0, R1, R2, R3, R4, R5, R6, R7, R8);
+
+            if (returnValue == -1) then
+                [physicalAddrRetVal] = -1;
+            else
+                alias lseekPos R9;
+                lseekPos = OPEN_FILE_TABLE + openFileTableIdx*4 + 2;
+
+                alias wordAddr R10; // This should be pointing to the actual location in physical memory
+
+                wordAddr = [[PTBR + 2 * ((userSP - 3) / 512)] * 512 + ((userSP - 3) % 512)]; // To "read" the argument the user passed to the function
+                wordAddr = [PTBR + 2*(wordAddr/512)]*512 + wordAddr % 512; // The Buffer Address in Physical Memory
+
+                if (inodeIdx == INODE_ROOT) then
+                    if ([lseekPos] == 480) then
+                        [physicalAddrRetVal] = -2;
+                    else
+                        [wordAddr] = [ROOT_FILE + [lseekPos]];
+                        // Increment the lseek position
+                        [lseekPos] = [lseekPos] + 1;
+                        [physicalAddrRetVal] = 0;
+                    endif;
+                else
+                    // print "------------------";
+                    // print [lseekPos];
+                    // print [INODE_TABLE + inodeIdx*16 + 2];
+                    // print "------------------";
+
+                    // If lseek position is same as the file size
+                    if ([lseekPos] == [INODE_TABLE + inodeIdx*16 + 2]) then
+                        // Release Inode
+                        multipush(R0, R1, R2, R3, R4, R5, R6, R7, R8, R9, R10);
+                        R1 = 5;
+                        R2 = [SYSTEM_STATUS_TABLE + 1];
+                        R3 = inodeIdx;
+                        call RESOURCE_MANAGER;
+                        multipop(R0, R1, R2, R3, R4, R5, R6, R7, R8, R9, R10);
+
+                        [physicalAddrRetVal] = -2;
+                    else
+                        // Get the block index from lseek position
+                        alias blockIdx R11;
+                        blockIdx = [lseekPos] / 512;
+                        
+                        // Get the disk block number corresponding to the block index from the Inode Table
+                        alias blockNum R12;
+                        blockNum = [INODE_TABLE + inodeIdx*16 + 8 + blockIdx];
+
+                        // Get the offset value from lseek position
+                        alias offset R13;
+                        offset = [lseekPos] % 512;
+
+                        // Call Buffered Read
+                        multipush(R0, R1, R2, R3, R4, R5, R6, R7, R8, R9, R10, R11, R12, R13);
+                        R1 = 2;
+                        R2 = blockNum;
+                        R3 = offset;
+                        R4 = wordAddr;
+                        call FILE_MANAGER;
+                        multipop(R0, R1, R2, R3, R4, R5, R6, R7, R8, R9, R10, R11, R12, R13);
+
+                        [lseekPos] = [lseekPos] + 1;
+                        [physicalAddrRetVal] = 0;
+                    endif;
+                endif;
+
+                // Release Inode
+                multipush(R0, R1, R2, R3, R4, R5, R6, R7, R8, R9, R10, R11, R12, R13);
+                R1 = 5;
+                R2 = [SYSTEM_STATUS_TABLE + 1];
+                R3 = inodeIdx;
+                call RESOURCE_MANAGER;
+                multipop(R0, R1, R2, R3, R4, R5, R6, R7, R8, R9, R10, R11, R12, R13);
+            endif;
+        endif;
+    endif;
+endif;
+
+SP = userSP;
+
+// Reset the MODE FLAG field in the process table to 0 
+[PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 9] = 0;
+
+ireturn;

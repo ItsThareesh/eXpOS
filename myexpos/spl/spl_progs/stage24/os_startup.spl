@@ -1,0 +1,116 @@
+// Load the exception handler routine from the disk to the memory
+loadi(2,15);
+loadi(3,16);
+
+// Load timer interrupt
+loadi(4,17);
+loadi(5,18);
+
+// Load the Disk Interrupt module from disk to memory
+loadi(6,19);
+loadi(7,20);
+
+// Load the Console Interrupt module from disk to memory
+loadi(8,21);
+loadi(9,22);
+
+// Load the INT4 module from disk to memory
+loadi(10,23);
+loadi(11,24);
+
+// Load the INT5 module from disk to memory
+loadi(12,25);
+loadi(13,26);
+
+// Load the INT6 module from disk to memory
+loadi(14,27);
+loadi(15,28);
+
+// Load the INT7 module from disk to memory
+loadi(16,29);
+loadi(17,30);
+
+// Load the INT8 module from disk to memory
+loadi(18,31);
+loadi(19,32);
+
+// Load the INT9 module from disk to memory
+loadi(20,33);
+loadi(21,34);
+
+// Load the INT10 module from disk to the memory
+loadi(22,35);
+loadi(23,36);
+
+// Load the INT11 module from disk to the memory
+loadi(24,37);
+loadi(25,38);
+
+// Load the INT13 module from disk to the memory
+loadi(28,41);
+loadi(29,42);
+
+// Load the INT14 module from disk to the memory
+loadi(30,43);
+loadi(31,44);
+
+// Load the INT15 module from disk to the memory
+loadi(32,45);
+loadi(33,46);
+
+// Load RESOURCE_MANAGER (MOD 0) from disk to memory
+loadi(40,53);
+loadi(41,54);
+
+// Load PROCESS_MANAGER (MOD 1) from disk to memory
+loadi(42,55);
+loadi(43,56);
+
+// Load MEMORY_MANAGER (MOD 2) from disk to memory
+loadi(44,57);
+loadi(45,58);
+
+// Load FILE_MANAGER (MOD 3) from disk to memory
+loadi(46,59);
+loadi(47,60);
+
+// Load DEVICE_MANAGER (MOD 4) from disk to memory
+loadi(48,61);
+loadi(49,62);
+
+// Load SCHEDULER (MOD 5)
+loadi(50,63);
+loadi(51,64);
+
+// Load Boot Module (MOD 7) from disk to memory
+loadi(54,67);
+loadi(55,68);
+
+// Load INODE_TABLE from disk to memory
+loadi(59,3);
+loadi(60,4);
+
+// Load DISK_FREE_LIST from disk to memory
+loadi(61,2);
+
+// Load Shared library to memory
+loadi(63,13);
+loadi(64,14);
+
+// Load INIT Program
+loadi(65,7);
+loadi(66,8);
+
+// Load IDLE Program
+loadi(69,11);
+loadi(70,12);
+
+// Set Kernel Stack to User Area (Page 82 in memory)
+SP = 82 * 512 - 1;
+
+call BOOT_MODULE;
+
+// Set SP to start execution
+SP = 8*512;
+
+ireturn;
