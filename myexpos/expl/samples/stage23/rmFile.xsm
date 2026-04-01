@@ -19,7 +19,7 @@ MOV R0,"Write"
 PUSH R0
 MOV R0,-2
 PUSH R0
-MOV R0,"File Name:"
+MOV R0,"rm file?"
 PUSH R0
 PUSH R0
 PUSH R0

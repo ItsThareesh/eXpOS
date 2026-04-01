@@ -92,6 +92,7 @@ if (functionNum == 4) then
     call SCHEDULER;
     multipop(R0, R1, R2, R3);
 
+    // Store the value of the input buffer from PCB into the physical address stored in register R3
     alias physicalAddress R4;
     physicalAddress = [PTBR + 2 * ((word)/512)] * 512 + (word)%512;
     [physicalAddress] = [PROCESS_TABLE + (currentPID*16) + 8];
