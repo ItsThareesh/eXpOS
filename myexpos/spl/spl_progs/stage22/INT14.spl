@@ -29,9 +29,9 @@ if (syscallNumber == 19) then
             [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 4] = WAIT_SEMAPHORE;
             [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 5] = semIdx;
 
-            multipush(R0, R1, R2, R3, R4);
+            multipush(R0, R1, R2, R3, R4, R5);
             call SCHEDULER;
-            multipop(R0, R1, R2, R3, R4);
+            multipop(R0, R1, R2, R3, R4, R5);
         endwhile;
 
         // Lock the Semaphore by setting the Locking PID

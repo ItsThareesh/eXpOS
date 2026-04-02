@@ -73,6 +73,7 @@ if (functionNum == 6) then
     alias i R3;
     i = 0;
 
+    // Find a free semaphore
     while (i < MAX_SEM_COUNT && [SEMAPHORE_TABLE + i * 4 + 1] != 0) do
         i = i + 1;
     endwhile;
@@ -124,7 +125,7 @@ if (functionNum == 8) then
     [TERMINAL_STATUS_TABLE + 1] = currentPID;
 endif;
 
-// Release Terminal{}
+// Release Terminal
 if (functionNum == 9) then
     if (currentPID != [TERMINAL_STATUS_TABLE + 1]) then
         R0 = -1;

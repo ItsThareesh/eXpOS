@@ -11,7 +11,7 @@ if (functionNum == 2) then
     alias bufferIdx R5;
     bufferIdx = blockNum % MAX_BUFFER;
 
-    // Acquire the buffer by calling the Acquire Buffer function
+    // Acquire the buffer
     multipush(R0, R1, R2, R3, R4, R5);
     R1 = 1;
     R3 = bufferIdx;
@@ -24,19 +24,21 @@ if (functionNum == 2) then
 
     if ([bufferEntry] != blockNum) then
         if ([bufferEntry + 1] == 1) then
+            // If buffer entry already contains data belonging to another disk block, store it to disk
+            // Call Disk Store function
             multipush(R0, R1, R2, R3, R4, R5, R6);
             R1 = 1;
             R2 = [SYSTEM_STATUS_TABLE + 1];
-            // The cache pages are numbered 0, 1, 2 & 3 and are stored in memory pages 71, 72, 73 & 74
+            // The cache pages are numbered 0, 1, 2 & 3 offsets and physical memory page starts with page 71
             R3 = 71 + bufferIdx;
             R4 = [bufferEntry];
             call DEVICE_MANAGER;
             multipop(R0, R1, R2, R3, R4, R5, R6);
 
-            // Reset the dirty bit
-            [bufferEntry + 1] = 0;
+            [bufferEntry + 1] = 0; // Reset the dirty bit
         endif;
 
+        // Call Disk Load function
         // Mismatch in ordering because R2 is blockNum and overwriting it with [SYSTEM_STATUS_TABLE + 1] will cause issues
         multipush(R0, R1, R2, R3, R4, R5, R6);
         R1 = 2;
@@ -61,7 +63,12 @@ if (functionNum == 2) then
 endif;
 
 // Open File
-// Function: Validates file, locks inode, updates File Status Table and/or Open File Table, relases inode & returns Index of open File Table Entry
+// Function:
+//  - Validates file
+//  - Locks Inode
+//  - Updates File Status Table and/or Open File Table
+//  - Relases Inode
+//  - Returns Index of Open File Table Entry
 if (functionNum == 3) then
     alias fileName R2; 
 

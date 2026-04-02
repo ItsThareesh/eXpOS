@@ -1,5 +1,5 @@
-// The OS crashes for some reason when IDLE program is created first, so create the INIT process 
-// first and then the IDLE program
+// The OS crashes for some reason when IDLE program is created first, so create the 
+// INIT process first and then the IDLE program
 
 // ------------ INIT PROGRAM ------------
 
@@ -133,7 +133,7 @@ while (currentPage < NUM_MEM_PAGES) do
     currentPage = currentPage + 1;
 endwhile;
 
-// ------------ Configure PER_PROCESS_RESOURCE_TABLE ------------
+// ------------ Configure RESOURCE_TABLE for INIT Process ------------
 
 alias offset R0;
 offset = RESOURCE_TABLE_OFFSET;

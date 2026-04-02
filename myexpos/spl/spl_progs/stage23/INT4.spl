@@ -50,11 +50,11 @@ if (syscallNumber == 1) then
             alias inodeEntry R8;
             inodeEntry = INODE_TABLE + idx * 16;
 
-            [inodeEntry + 0] = DATA;
-            [inodeEntry + 1] = fileName;
-            [inodeEntry + 2] = 0;
-            [inodeEntry + 3] = [currentPCB + 3];
-            [inodeEntry + 4] = permission;
+            [inodeEntry + 0] = DATA; // File Type
+            [inodeEntry + 1] = fileName; // File Name
+            [inodeEntry + 2] = 0; // File Size
+            [inodeEntry + 3] = [currentPCB + 3]; // UserID
+            [inodeEntry + 4] = permission; // Permission
             
             // Set Data Blocks to -1
             [inodeEntry + 8] = -1;
@@ -63,13 +63,15 @@ if (syscallNumber == 1) then
             [inodeEntry + 11] = -1;
 
             alias rootFileEntry R9;
-            rootFileEntry = ROOT_FILE + idx * 8;
+            rootFileEntry = [ROOT_FILE + idx * 8];
 
-            [rootFileEntry + 0] = fileName;
-            [rootFileEntry + 1] = 0;
-            [rootFileEntry + 2] = DATA;
-            [rootFileEntry + 3] = [USER_TABLE + [currentPCB + 3] * 2];
-            [rootFileEntry + 4] = permission;
+            [rootFileEntry + 0] = fileName; // File Name
+            [rootFileEntry + 1] = 0; // File Size
+            [rootFileEntry + 2] = DATA; // File Type
+            [rootFileEntry + 3] = [USER_TABLE + [currentPCB + 3] * 2]; // Username
+            [rootFileEntry + 4] = permission; // Permission
+
+            // Notice how Inode Table stores UserID but Rootfile stores Username... Don't confuse between them both
 
             [[PTBR + 2 * ((userSP - 1) / 512)] * 512 + (userSP - 1) % 512] = 0;
         endif;

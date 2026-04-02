@@ -58,8 +58,8 @@ if (functionNum == 3) then
     [DISK_STATUS_TABLE + 4] = currentPID;
 endif;
 
-// No Release Disk because it's just flipping the bit to 0 in the DISK_STATUS_TABLE
-// which can be done by the process upon finishing the disk access manually
+// No Release Disk because it's just flipping the bit to 0 in the DISK_STATUS_TABLE. It is done
+// by the disk_interrupt module which executes only when the disk raises a hardware interrupt
 
 // Acquire Inode
 if (functionNum == 4) then
