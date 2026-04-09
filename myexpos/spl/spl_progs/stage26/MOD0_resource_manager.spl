@@ -1,0 +1,269 @@
+alias functionNumber R1;
+alias currentPID R2;
+
+// --- Acquire Buffer Function ---  
+// Purpose: Locks and acquires a buffer for use by the calling process.  
+// Input:  Buffer Number (Integer)  
+// Return Value: None  
+// Implementation:  
+//   - While the buffer is locked:  
+//       - Set the process state to `(WAIT_BUFFER, Buffer Number)`.  
+//       - Invoke `switch_context()` from the Scheduler Module.  
+//   - Lock the buffer by setting the calling process's PID in the Buffer Status Table.  
+//   - Return.  
+if (functionNumber == 1) then
+    breakpoint;
+    alias bufferNumber R2;
+    alias currentPID R3;
+
+    // while buffer is locked
+    while ([BUFFER_TABLE + bufferNumber*4 + 2] != -1) do
+        // set the state to wait buffer and call the scheduler
+        [PROCESS_TABLE + (currentPID*16) + 4] = WAIT_BUFFER;
+        [PROCESS_TABLE + (currentPID*16) + 5] = bufferNumber;
+
+        multipush(R1, R2, R3);
+        call SCHEDULER;
+        multipop(R1, R2, R3);
+    endwhile;
+    [BUFFER_TABLE + bufferNumber*4 + 2] = currentPID;
+    breakpoint;
+endif;
+
+// --- Release Buffer Function ---  
+// Purpose: Releases a previously acquired buffer.  
+// Arguments:  
+//   - Buffer Number (Integer)  
+//   - Process ID (PID)  
+// Return Value:  
+//   -  0: Success  
+//   - -1: Failed (Caller is not the process that locked the buffer)  
+// Implementation:  
+//   - If the calling process's PID does not match the Locking PID in the Buffer Status Table, return `-1`.  
+//   - Free the lock by setting the Locking PID field in the Buffer Status Table to `-1`.  
+//   - Loop through the Process Table:  
+//       - If a process is in state `(WAIT_BUFFER, Buffer Number)`, set its state to `(READY, _)`.  
+//   - Return `0`.  
+if (functionNumber == 2) then
+    breakpoint;
+    alias bufferNumber R2;
+    alias currentPID R3;
+    alias counter R4;
+    counter = 0;
+
+    // check if the given PID matches the locked PID in the buffer status table
+    if (currentPID != [BUFFER_TABLE + bufferNumber * 4 + 2]) then
+        R0 = -1;
+    else
+        // free the lock in buffer status table
+        [BUFFER_TABLE + bufferNumber*4 + 2] = -1;
+        
+        // loop through and set the waiting processes of this buffer to ready
+        while (counter < MAX_PROC_NUM) do
+            if ([PROCESS_TABLE + counter*16 + 4] == WAIT_BUFFER && [PROCESS_TABLE + counter*16 + 5] == bufferNumber) then
+                [PROCESS_TABLE + counter*16 + 4] = READY;            
+            endif;
+            counter = counter+1;
+        endwhile;
+
+        R0 = 0;
+    endif;
+    breakpoint;
+endif;
+
+
+// --- Acquire Disk (Function 3) ---
+// Purpose: Locks the disk device for exclusive access
+// Input: PID - Process ID requesting the lock
+// Implementation:
+//   - If the disk is locked, set process state to (WAIT_DISK, -)
+//   - Call switch_context() to yield execution
+//   - Once free, lock the disk by updating Disk Status Table
+if (functionNumber == 3) then
+    //breakpoint;
+    while ([DISK_STATUS_TABLE+0] == 1) do
+        [PROCESS_TABLE + (currentPID*16) + 4] = WAIT_DISK;
+        multipush(R1, R2, R3);
+        call SCHEDULER;
+        multipop(R1, R2, R3);
+    endwhile;
+    [DISK_STATUS_TABLE + 0] = 1;
+    [DISK_STATUS_TABLE + 4] = currentPID;
+endif;
+
+// --- Acquire Inode (Function 4)---
+// Purpose: Locks the inode entry for the given index  
+// Input: Inode Index (Integer), Process ID (PID) (Integer)  
+// Output:  
+//   - Returns 0 on success  
+//   - Returns -1 if inode becomes invalid (deleted before lock)  
+// Implementation:  
+//   - If inode is locked:  
+//     - Set process state to (WAIT_FILE, Inode Index)  
+//     - Call switch_context()  
+//   - If inode is invalid, return -1  
+//   - Lock inode by setting Lock field to current PID  
+//   - Return 0  
+//   - Used by Delete, Read, Write, Seek  
+if (functionNumber == 4) then
+    alias inodeNumber R2;
+    alias currentPID R3;
+
+    // while the inode is locked
+    while([FILE_STATUS_TABLE + inodeNumber * 4 + 0] != -1) do
+        // set the invoking process to be waiting for this file
+        [PROCESS_TABLE + (16 * currentPID) + 4] = WAIT_FILE;
+        [PROCESS_TABLE + (16 * currentPID) + 5] = inodeNumber; 
+        
+        // schedule next process
+        multipush(R1, R2, R3);
+        call SCHEDULER;
+        multipop(R1, R2, R3);
+    endwhile;
+
+    // if the inode becomes invalid (deleted)
+    if ([INODE_TABLE + inodeNumber * 16 + 1] == -1) then 
+        R0 = -1;
+    else
+        // lock the inode to the calling process
+        [FILE_STATUS_TABLE + inodeNumber * 4 + 0] = currentPID;
+        R0 = 0;
+    endif;
+endif;
+
+// --- Release Inode (Function 5)---  
+// Purpose: Unlocks the inode entry for the given index  
+// Input: Inode Index (Integer), Process ID (PID) (Integer)  
+// Output:  
+//   - Returns 0 on success  
+//   - Returns -1 if PID doesn’t match locking PID  
+// Implementation:  
+//   - If PID differs from locking PID, return -1  
+//   - Free lock by setting Lock field to -1  
+//   - Update processes in (WAIT_FILE, Inode Index) to READY  
+//   - Return 0  
+//   - Used by Read, Write, Seek  
+if (functionNumber == 5) then
+    alias inodeNumber R2;
+    alias currentPID R3;
+
+    if([FILE_STATUS_TABLE + inodeNumber * 4 + 0] == currentPID) then
+        // unlock the inode
+        [FILE_STATUS_TABLE + inodeNumber * 4 + 0] = -1;
+
+        alias counter R4;
+        counter = 0;
+        while (counter < MAX_PROC_NUM) do
+            if([PROCESS_TABLE + (counter * 16) + 4] == WAIT_FILE && [PROCESS_TABLE + (counter * 16) + 5] == inodeNumber) then
+                [PROCESS_TABLE + (counter * 16) + 4] = READY;
+            endif;
+            counter = counter + 1;
+        endwhile;
+        R0 = 0;
+    else
+        R0 = -1;
+    endif;
+endif;
+
+// --- Acquire Semaphore (Function 6) ---
+// Purpose: Acquires a semaphore and returns its index
+// Input: PID - Process ID requesting the semaphore
+// Output: Semaphore Table Index (Success) or -1 (Failure)
+// Implementation:
+//   - Find a free entry in Semaphore Table (PROCESS_COUNT == 0)
+//   - If no free entry, return -1
+//   - Set PROCESS_COUNT to 1 and LOCKING_PID to -1
+//   - Return Semaphore Table Index
+if (functionNumber == 6) then
+    alias counter R3;
+    counter = 0;
+
+    // iterate through semaphore table and if process count field = 0, then its unused
+    while (counter < MAX_SEM_COUNT && [SEMAPHORE_TABLE + counter * 4 + 1] != 0) do
+        counter = counter + 1;
+    endwhile;
+
+    if(counter == MAX_SEM_COUNT) then
+        R0 = -1;
+    else
+        // set locking field to -1 and increment process count field to 1 
+        [SEMAPHORE_TABLE + counter*4 + 0] = -1;
+        [SEMAPHORE_TABLE + counter*4 + 1] = 1;
+        R0 = counter;
+    endif;
+endif;
+
+// --- Release Semaphore (Function 7) ---
+// Purpose: Releases a semaphore, unlocking blocked processes
+// Input: Semaphore Table Index, PID
+// Output: 0 (Success) or -1 (Failure)
+// Implementation:
+//   - If the semaphore is locked by the given PID, set LOCKING_PID to -1
+//   - Wake up processes in (WAIT_SEMAPHORE, SEMTABLEINDEX) state
+//   - Decrement PROCESS_COUNT; if 0, semaphore is free
+//   - Called by Semrelease and exit system calls
+if (functionNumber == 7) then
+    alias semIndex R2;
+    alias currentPID R3;
+    alias counter R4;
+    counter = 0;
+
+    if([SEMAPHORE_TABLE + 4 * semIndex + 0] == currentPID) then
+        [SEMAPHORE_TABLE + 4 * semIndex + 0] = -1;
+
+        while (counter < MAX_PROC_NUM) do
+            if ([PROCESS_TABLE + (counter * 16) + 4] == WAIT_SEMAPHORE && [PROCESS_TABLE + (counter * 16) + 5] == semIndex) then
+                [PROCESS_TABLE + (counter * 16) + 4] = READY;
+            endif;
+            counter = counter + 1;
+        endwhile;
+        [SEMAPHORE_TABLE + semIndex * 4 + 1] = [SEMAPHORE_TABLE + semIndex * 4 + 1] - 1;
+    endif;
+endif;
+
+// --- Acquire Terminal (Function 8) ---
+// Purpose: Locks the terminal device for exclusive use
+// Input: PID - Process ID requesting access
+// Implementation:
+//   - If the terminal is locked, set process state to (WAIT_TERMINAL, -)
+//   - Call switch_context() to yield execution
+//   - Once free, lock the terminal by updating Terminal Status Table
+//   - Called by Terminal Read and Terminal Write functions
+if (functionNumber == 8) then
+    while ([TERMINAL_STATUS_TABLE + 0] == 1) do
+        [PROCESS_TABLE + (currentPID * 16) + 4] = WAIT_TERMINAL;
+        multipush(R1, R2, R3);
+        call SCHEDULER;
+        multipop(R1, R2, R3);    
+    endwhile;
+    [TERMINAL_STATUS_TABLE + 1] = currentPID;
+    [TERMINAL_STATUS_TABLE + 0] = 1;
+endif;
+
+
+// --- Release Terminal (Function 9) ---
+// Purpose: Releases the terminal, allowing other processes to use it
+// Input: PID - Process ID releasing the lock
+// Output: 0 (Success) or -1 (Failure)
+// Implementation:
+//   - If PID does not match LOCKING_PID in Terminal Status Table, return -1
+//   - Update Terminal Status Table to release lock
+//   - Wake up processes in (WAIT_TERMINAL, -) state
+if (functionNumber == 9) then
+    if ([TERMINAL_STATUS_TABLE+1] == currentPID) then
+        [TERMINAL_STATUS_TABLE+0] = 0;
+        alias i R4;
+        i = 1;
+        while (i < MAX_PROC_NUM) do
+            if ([PROCESS_TABLE + (i*16) + 4] == WAIT_TERMINAL) then
+                [PROCESS_TABLE + (i*16) + 4] = READY;
+            endif;
+            i = i + 1;
+        endwhile;
+        R0 = 0;
+    else
+        R0 = -1;
+    endif;
+endif;
+
+return;

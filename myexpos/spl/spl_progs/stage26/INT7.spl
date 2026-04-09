@@ -1,0 +1,200 @@
+// --- Write System Call ---  
+// Purpose: Writes a word to a file at the position pointed by the file pointer.  
+// Arguments:  
+//   - File Descriptor (Integer)  
+//   - Word to be written  
+// Return Value:  
+//   -  0: Success  
+//   - -1: Invalid file descriptor  
+//   - -2: No disk space / File full  
+//   - -3: Permission denied  
+// Implementation:  
+//   - Set `MODE_FLAG` in Process Table to 5 (indicating Write system call).  
+//   - Switch to Kernel Stack, saving the user stack pointer (SP).  
+//   - If writing to `STDOUT` (`fd = -2`), call `terminal_write()`, restore stack, and return 0.  
+//   - Validate file descriptor (must be in range 0-7). If invalid, return -1.  
+//   - Locate Per-Process Resource Table and verify entry corresponds to a valid file.  
+//   - Retrieve Open File Table and Inode Table indices.  
+//   - Check write permissions. If exclusive access is set and user lacks permission, return -3.  
+//   - Acquire inode lock using `acquire_inode()`. If fails, return -1.  
+//   - Retrieve file pointer position (Lseek).  
+//   - If file size limit (2048 words) is reached, release inode and return -2.  
+//   - If new disk block allocation is needed, find free block and position.  
+//   - Write word using `buffered_write()`.  
+//   - If writing extends file size, update inode table and root file memory.  
+//   - Advance file pointer (Lseek).  
+//   - Release inode lock using `release_inode()`.  
+//   - Restore stack, reset `MODE_FLAG`, and return 0.  
+[PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 9] = 5;
+alias userSP R0;
+alias physicalPageNum R1;
+alias offset R2;
+alias fileDescriptorAddr R3;
+alias fileDescriptor R4;
+alias processTable R7;
+userSP = SP;
+
+// storing user stack pointer in process table
+processTable = PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16);
+[processTable + 13] = SP; 
+
+// setting stack pointer to kernel stack
+SP = [processTable + 11] * 512 - 1;
+
+// accessing the physical page number to access the arguement1
+physicalPageNum = [PTBR + 2*((userSP-4)/512)]; //get physical page number of file descriptor
+offset = (userSP-4)%512; //get offset of file descriptor
+fileDescriptorAddr = physicalPageNum*512 + offset; //get physical address of file descriptor
+fileDescriptor = [fileDescriptorAddr];
+
+// if file descriptor is -2, write to terminal
+if (fileDescriptor != -2) then
+    alias physicalAddrRetVal R5;
+    physicalAddrRetVal = [PTBR + 2*((userSP-1)/512)]*512 + (userSP-1)%512;
+    
+    // check if file descriptor is valid
+    if (fileDescriptor < 0 || fileDescriptor > 7) then
+        [physicalAddrRetVal] = -1;
+    else
+        // locate per process resource table
+        alias resourceTableEntry R6;
+        resourceTableEntry = [processTable + 11]*512 + RESOURCE_TABLE_OFFSET + fileDescriptor*2;
+
+        // if it doesnt indicate file, return -1
+        if ([resourceTableEntry + 0] != FILE) then
+            [physicalAddrRetVal] = -1;
+        else
+            alias openFileTableEntry R8;
+            alias inodeIndex R9;
+            alias inodeTableEntry R15;
+
+            // get index of OPEN_FILE_TABLE entry and INODE_TABLE entry
+            openFileTableEntry = [resourceTableEntry + 1];
+            inodeIndex = [OPEN_FILE_TABLE + openFileTableEntry*4 + 0];            
+            inodeTableEntry = INODE_TABLE + inodeIndex*16;
+
+            // if current user isnt root and curent user doesnt own the file, return -1
+            if (([processTable + 3] != ROOT) && ( [inodeTableEntry + 4] == EXCLUSIVE && [inodeTableEntry + 3] != [processTable + 3])) then
+                [physicalAddrRetVal] = -3;
+            else
+                // acquire the lock by calling acquire inode
+                alias returnValue R10;
+                multipush(R0, R1, R2, R3, R4, R5, R6, R7, R8, R9, R14, R15);
+                R1 = 4;
+                R2 = inodeIndex;
+                R3 = [SYSTEM_STATUS_TABLE+1];
+                call FILE_MANAGER;
+                returnValue = R0;
+                multipop(R0, R1, R2, R3, R4, R5, R6, R7, R8, R9, R14, R15);
+                
+                // if acquiring inode fails, return -1
+                if (returnValue == -1) then
+                    [physicalAddrRetVal] = -1;
+                else
+                    alias lseek R10;
+                    // get the lseek position
+                    lseek = [OPEN_FILE_TABLE + openFileTableEntry * 4 + 2];
+
+                    // if lseek position is at end of file, release inode and return -2
+                    if (lseek == MAX_FILE_SIZE) then
+                        alias newBlock R11;
+                        multipush(R0, R1, R2, R3, R4, R5, R6, R7, R8, R9, R10, R14, R15);
+                        R1 = 5;
+                        R2 = inodeIndex;
+                        R3 = [SYSTEM_STATUS_TABLE+1];
+                        call FILE_MANAGER;
+                        multipop(R0, R1, R2, R3, R4, R5, R6, R7, R8, R9, R10, R14, R15);
+                        
+                        [physicalAddrRetVal] = -2;
+                    else
+                        if ((lseek % 512) == 0 && lseek == [inodeTableEntry + 2]) then 
+                            alias newBlock R11;
+                            multipush(R0, R1, R2, R3, R4, R5, R6, R7, R8, R9, R10, R14, R15);
+                            R1 = 3;
+                            call MEMORY_MANAGER;
+                            newBlock = R0;
+                            multipop(R0, R1, R2, R3, R4, R5, R6, R7, R8, R9, R10, R14, R15);
+                            if (newBlock == -1) then
+                                multipush(R0, R1, R2, R3, R4, R5, R6, R7, R8, R9, R10, R11, R14, R15);
+                                R1 = 5;
+                                R2 = inodeIndex;
+                                R3 = [SYSTEM_STATUS_TABLE+1];
+                                call RESOURCE_MANAGER;
+                                multipop(R0, R1, R2, R3, R4, R5, R6, R7, R8, R9, R10, R11, R14, R15);
+
+                                [physicalAddrRetVal] = -2; //no blocks free
+
+                                goto exit;
+                            else
+                                [inodeTableEntry + 8 + (lseek/512)] = newBlock;
+                            endif;
+                        endif;
+
+                        alias blockNumber R11;
+                        alias offset R12;
+                        alias wordToWrite R13;
+
+                        // get the blocknumber and the offset
+                        blockNumber = [inodeTableEntry + 8 + (lseek/512)];
+                        offset = lseek%512;
+                        wordToWrite = [PTBR + 2*((userSP-3)/512)]*512 + (userSP-3)%512;
+
+                        // write operation
+                        multipush(R0, R1, R2, R3, R4, R5, R6, R7, R8, R9, R10, R11, R12, R13, R14, R15);
+                        R1 = 1;
+                        R2 = blockNumber;
+                        R3 = offset;
+                        R4 = [wordToWrite];
+                        call FILE_MANAGER;
+                        multipop(R0, R1, R2, R3, R4, R5, R6, R7, R8, R9, R10, R11, R12, R13, R14, R15);
+
+                        // update file size if needed
+                        if (lseek == [inodeTableEntry + 2]) then
+                            [inodeTableEntry + 2] = [inodeTableEntry + 2] + 1;
+                            [ROOT_FILE + inodeIndex*8 + 1] = [ROOT_FILE + inodeIndex*8 + 1] + 1;
+                        endif;
+
+                        // move file pointer forward
+                        [OPEN_FILE_TABLE + openFileTableEntry*4 + 2] = [OPEN_FILE_TABLE + openFileTableEntry*4 + 2] + 1;
+
+                        // release inode lock
+                        multipush(R0, R1, R2, R3, R4, R5, R6, R7, R8, R9, R10, R11, R12, R13, R14, R15);
+                        R1 = 5;
+                        R2 = inodeIndex;
+                        R3 = [SYSTEM_STATUS_TABLE+1];
+                        call RESOURCE_MANAGER;
+                        multipop(R0, R1, R2, R3, R4, R5, R6, R7, R8, R9, R10, R11, R12, R13, R14, R15);
+
+                        [physicalAddrRetVal] = 0;
+                    endif;
+                endif;
+            endif;
+        endif;
+    endif;
+else
+    alias word R5;
+    alias physicalAddrRetVal R6;
+    word = [[PTBR + 2*((userSP-3)/512)]*512 + (userSP-3)%512];
+    
+    multipush(R0, R1, R2, R3, R4, R5, R6);
+    alias functionNumber R1;
+    alias currentPID R2;
+    alias wordToPrint R3;
+
+    functionNumber = 3;
+    currentPID = [SYSTEM_STATUS_TABLE+1];
+    wordToPrint = word;
+
+    call DEVICE_MANAGER;
+
+    multipop(R0, R1, R2, R3, R4, R5, R6);
+
+    physicalAddrRetVal = [PTBR + 2*((userSP-1)/512)]*512 + (userSP-1)%512;
+    [physicalAddrRetVal] = 0;    
+endif;
+
+exit:
+    // set back the stack pointer
+    SP = userSP;
+    [processTable + 9] = 0;
+    ireturn;

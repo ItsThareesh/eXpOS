@@ -1,0 +1,21 @@
+int main() {
+    decl 
+        str fileName;
+        int temp, fileDesc, counter, permission, status;
+
+    enddecl
+
+    begin 
+        temp = exposcall("Write", -2, "Filename:");
+        temp = exposcall("Read", -1, fileName);
+
+        temp = exposcall("Write", -2, "Perm:");
+        temp = exposcall("Write", -2, "0 - excl");
+        temp = exposcall("Write", -2, "1 - open");
+        temp = exposcall("Read", -1, permission);
+
+        status = exposcall("Create", fileName, permission);
+      
+        return 0;
+    end
+}

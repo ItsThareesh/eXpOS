@@ -1,0 +1,222 @@
+alias userSP R0;
+alias processTable R1;
+alias callNumber R2;
+alias username R3;
+alias returnAddress R4;
+userSP = SP;
+
+processTable = PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16);
+callNumber = [[PTBR + 2*(userSP-5)/512]*512 + (userSP-5)%512];
+username = [[PTBR + 2*(userSP-4)/512]*512 + (userSP-4)%512];
+returnAddress = [PTBR + 2*(userSP - 1)/512]*512 + (userSP - 1)%512;
+
+[processTable + 9] = callNumber;
+
+// --- Newusr ---  
+// Purpose: Creates a new user with a username and password.  
+// Implementation:  
+//   - Set `MODE_FLAG = 22`.  
+//   - If the user is not root or the process is not the shell, return -2.  
+//   - If the user exists, return -1.  
+//   - If no free entry in User Table, return -3.  
+//   - Encrypt password and store username & password.  
+//   - Reset `MODE_FLAG`, return 0.  
+// Called by: Root shell process.  
+if (callNumber == 22) then
+    // if user isnt root or process isnt shell, return -2
+    if ([SYSTEM_STATUS_TABLE] != ROOT || [SYSTEM_STATUS_TABLE + 1] != 2) then
+        [returnAddress] = -2;
+    else
+        alias password R5;
+        alias counter R6;
+
+        password = [[PTBR + 2*(userSP-3)/512]*512 + (userSP-3)%512];
+        counter = 0;
+
+        // check if the user already exists
+        while (counter < MAX_USER_NUM) do
+            if ([USER_TABLE + counter * 2 + 0] == username || [USER_TABLE + counter*2 + 0] == -1) then 
+                break;
+            endif;
+            counter = counter + 1;
+        endwhile;
+
+        // if max user count reached, return -3
+        if (counter == MAX_USER_NUM) then
+            [returnAddress] = -3;
+        else
+            // if user already exists, return -1
+            if ([USER_TABLE + counter * 2 + 0] == username) then
+                [returnAddress] = -1;
+            else
+                alias encPassword R7;
+                encPassword = password;
+                encrypt encPassword;
+                [USER_TABLE + counter * 2 + 0] = username;
+                [USER_TABLE + counter * 2 + 1] = encPassword;
+
+                [returnAddress] = 0;
+            endif;
+        endif;
+    endif;
+endif;
+
+// --- Remusr ---  
+// Purpose: Removes an existing user (except root and kernel).  
+// Implementation:  
+//   - Set `MODE_FLAG = 23`.  
+//   - If not root or not shell, return -2.  
+//   - If user is "root" or "kernel", return -2.  
+//   - If user not found, return -1.  
+//   - If user has undeleted files, return -3.  
+//   - Invalidate user entry.  
+//   - Reset `MODE_FLAG`, return 0.  
+// Called by: Root shell process.  
+if (callNumber == 23) then
+    // if user isnt root or shell, return -2
+    if ([SYSTEM_STATUS_TABLE] != ROOT || [SYSTEM_STATUS_TABLE + 1] != 2) then
+        [returnAddress] = -2;
+    else
+        // if user to be removed is root or kernal, return -2
+        if (username == "kernel" || username == "root") then
+            [returnAddress] = -2;
+        else
+            alias counter R5;
+            counter = 0;
+            // loop through the user table to see if the entry is preset
+            while (counter < MAX_USER_NUM) do
+                if ([USER_TABLE + counter*2 + 0] == username) then
+                    break;
+                endif;
+                counter = counter+1;
+            endwhile;
+
+            // entry not present, return -1
+            if (counter == MAX_USER_NUM) then
+                [returnAddress] = -1;
+            else
+                // check if user files are preset on disk
+                alias userFiles R6;
+                userFiles = 0;
+                while (userFiles < MAX_FILE_NUM) do
+                    if ([ROOT_FILE + userFiles*8 + 3] == username) then 
+                        break;
+                    endif;
+                    userFiles = userFiles + 1;
+                endwhile;
+
+                // if files are present, return -3
+                if (userFiles != MAX_FILE_NUM) then
+                    [returnAddress] = -3;
+                else
+                    // invalidate password and username
+                    [USER_TABLE + counter * 2 + 0] = -1;
+                    [USER_TABLE + counter * 2 + 1] = -1;
+                    [returnAddress] = 0;
+                endif;
+            endif;
+        endif;
+    endif;
+endif;
+
+// --- Setpwd ---  
+// Purpose: Changes a user's password (only by self or root).  
+// Implementation:  
+//   - Set `MODE_FLAG = 24`.  
+//   - If not shell, return -1.  
+//   - If user not found, return -2.  
+//   - If user mismatches and not root, return -1.  
+//   - Encrypt and update password.  
+//   - Reset `MODE_FLAG`, return 0.  
+// Called by: Shell process.  
+if (callNumber == 24) then
+    // if calling progtram isnt shell, return -1
+    if ([SYSTEM_STATUS_TABLE+1] != 2) then 
+        [returnAddress] = -1;
+    else
+        alias password R5;
+        alias counter R6;
+        password = [[PTBR + 2*(userSP-3)/512]*512 + (userSP-3)%512];
+        counter = 0;
+
+        // loop through user table and find entry corresponding to user name
+        while (counter < MAX_USER_NUM) do
+            if ([USER_TABLE + counter*2 + 0] == username) then
+                break;
+            endif;
+            counter = counter+1;
+        endwhile;
+
+        // if not found, return -2
+        if (counter == MAX_USER_NUM) then 
+            [returnAddress] = -2;
+        else
+            // if current user isnt root or userid of process is not userid of user, return -1
+            if (counter != [SYSTEM_STATUS_TABLE] && [SYSTEM_STATUS_TABLE] != ROOT) then
+                [returnAddress] = -1;
+            else
+                // set password
+                alias encPassword R7;
+                encPassword = password;
+                encrypt encPassword;
+                [USER_TABLE + counter * 2 + 1] = encPassword;
+
+                [returnAddress] = 0;
+            endif;
+        endif;
+    endif;
+endif;
+
+// --- Getuname ---  
+// Purpose: Retrieves the username for a given user ID.  
+// Implementation:  
+//   - Set `MODE_FLAG = 25`.  
+//   - If ID is invalid (<0 or >15), return -1.  
+//   - If user entry is invalid, return -1.  
+//   - Fetch and return username.  
+//   - Reset `MODE_FLAG`.  
+// Called by: Any process.
+if (callNumber == 25) then 
+    alias userID R3;
+    // if username isnt valid, return -1
+    if (userID < 0 || userID > MAX_USER_NUM) then 
+        [returnAddress] = -1;
+    else
+        // userid of user is the index of the user table entry of user
+        if ([USER_TABLE + userID * 2 + 0] == -1) then 
+            [returnAddress] = -1;
+        else
+            [returnAddress] = [USER_TABLE + userID * 2 + 0];
+        endif;
+    endif;
+endif;
+
+// --- Getuid ---  
+// Purpose: Retrieves the user ID for a given username.  
+// Implementation:  
+//   - Set `MODE_FLAG = 26`.  
+//   - If username exists, return user table index.  
+//   - Else return -1.  
+// Called by: Any process.  
+if (callNumber == 26) then
+    alias counter R5;
+    counter = 0;
+    // if username is equal to user name entry in user table
+    while (counter < MAX_USER_NUM) do
+        if ([USER_TABLE + counter*2 + 0] == username) then 
+            break;
+        endif;
+        counter = counter + 1;
+    endwhile;
+
+    // return index if present
+    if (counter == MAX_USER_NUM) then   
+        [returnAddress] = -1;
+    else
+        [returnAddress] = counter;
+    endif;
+endif;
+
+
+[processTable + 9] = 0;
+ireturn;
