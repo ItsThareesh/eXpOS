@@ -6,7 +6,7 @@ int main(){
     begin
         a=1;
         while(a == 1) do
-            temp = exposcall("Write",-2,"natshell >");
+            temp = exposcall("Write",-2,"shell >");
             temp = exposcall("Read",-1, input);
 
             flag = 0;

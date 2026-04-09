@@ -37,7 +37,7 @@ MOV R0,"Write"
 PUSH R0
 MOV R0,-2
 PUSH R0
-MOV R0,"natshell >"
+MOV R0,"shell >"
 PUSH R0
 PUSH R0
 PUSH R0
