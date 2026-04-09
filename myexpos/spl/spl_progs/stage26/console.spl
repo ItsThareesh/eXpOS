@@ -1,0 +1,28 @@
+// saving the current value of stack pointer to process table
+// rewriting the SP to kernel stack base
+[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE+1]*16) + 13] = SP;
+SP = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE+1]*16) + 11]*512 - 1;
+backup;
+
+// getting the PID of the process which has to release the terminal
+alias reqPID R0;
+reqPID = [TERMINAL_STATUS_TABLE+1];
+
+R1 = P0;
+[PROCESS_TABLE + (reqPID*16) + 8] = R1;
+multipush(R0, R1, R2, R3);
+
+alias functionNumber R1;
+alias currentPID R2;
+
+// calling terminal release
+//breakpoint;
+functionNumber = 9;
+currentPID = reqPID;
+call RESOURCE_MANAGER;
+
+multipop(R0, R1, R2, R3);
+
+restore;
+SP = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE+1]*16) + 13];
+ireturn;

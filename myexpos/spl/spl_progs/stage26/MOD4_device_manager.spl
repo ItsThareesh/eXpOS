@@ -1,0 +1,132 @@
+alias functionNumber R1;
+alias currentPID R2;
+
+// --- Disk Store (Function 1) ---
+// Purpose: Stores the contents of a page to a disk block
+// Input: PID - Process ID, Page Number - Page to be stored, Block Number - Disk block to store the page
+// Implementation:
+//   - Acquire the lock on the disk device using the Acquire_Disk() function
+//   - Set the LOAD/STORE bit, Page Number, and Block Number in the Disk Status Table
+//   - Store the memory page to the specified disk block
+//   - Set process state to (WAIT_DISK, -)
+//   - Call switch_context() to yield execution to another process
+//   - Return when operation is completed
+if (functionNumber == 1) then
+    alias pageNumber R3;
+    alias blockNumber R4;
+
+    // call disk acquire
+    multipush(R0, R1, R2, R3, R4);
+    functionNumber = 3;
+    call RESOURCE_MANAGER;
+    multipop(R0, R1, R2, R3, R4);
+
+    // set the load/store bit, the page number and the blocknumber
+    [DISK_STATUS_TABLE + 1] = 1;
+    [DISK_STATUS_TABLE + 2] = pageNumber;
+    [DISK_STATUS_TABLE + 3] = blockNumber;
+
+    // store the pagenumber to the blocknumber
+    store(pageNumber, blockNumber);
+
+    // set to wait disk and call scheduler
+    [PROCESS_TABLE + (currentPID*16) + 4] = WAIT_DISK;
+
+    multipush(R0, R1, R2, R3, R4);
+    call SCHEDULER;
+    multipop(R0, R1, R2, R3, R4);
+endif;
+
+// --- Disk Load (Function 2) ---
+// Purpose: Loads the contents of a disk block into a memory page
+// Input: PID - Process ID, Page Number - Page to load, Block Number - Disk block to load from
+// Implementation:
+//   - Acquire the lock on the disk device using the Acquire_Disk() function
+//   - Reset the LOAD/STORE bit and update the Page Number and Block Number in the Disk Status Table
+//   - Load the disk block into the specified memory page
+//   - Set process state to (WAIT_DISK, -)
+//   - Call switch_context() to yield execution to another process
+//   - Return when operation is completed
+if (functionNumber == 2) then 
+    alias pageNumber R3;
+    alias blockNumber R4;
+
+    // call disk acquire
+    multipush(R0, R1, R2, R3, R4);
+    functionNumber = 3;
+    call RESOURCE_MANAGER;
+    multipop(R0, R1, R2, R3, R4);
+
+    // reset the load/store bit, the page number and the blocknumber
+    [DISK_STATUS_TABLE + 1] = 0;
+    [DISK_STATUS_TABLE + 2] = pageNumber;
+    [DISK_STATUS_TABLE + 3] = blockNumber;
+
+    //load the blocknumber to the pagenumber
+    load(pageNumber, blockNumber);
+
+    [PROCESS_TABLE + (currentPID * 16) + 4] = WAIT_DISK;
+
+    // set to wait disk and call scheduler
+    multipush(R0, R1, R2, R3, R4);
+    call SCHEDULER;
+    multipop(R0, R1, R2, R3, R4);
+endif;
+
+// --- Terminal Write (Function 3) ---
+// Purpose: Writes a word from memory to the terminal
+// Input: PID - Process ID, Word - Word to be written to the terminal
+// Implementation:
+//   - Acquire the lock on the terminal device using the Acquire_Terminal() function
+//   - Print the word to the terminal using the print statement
+//   - Release the lock on the terminal device using the Release_Terminal() function
+//   - Return after completing the write operation
+if (functionNumber == 3) then 
+    alias word R3;
+
+    // call terminal acquire
+    multipush(R0, R1, R2, R3);
+    functionNumber = 8;
+    call RESOURCE_MANAGER;
+    multipop(R0, R1, R2, R3);
+    
+    print word;
+
+    // call terminal release
+    multipush(R0, R1, R2, R3);
+    functionNumber = 9;
+    call RESOURCE_MANAGER;
+    multipop(R0, R1, R2, R3);
+endif;
+
+// --- Terminal Read (Function 4) ---
+// Purpose: Reads a word from the terminal and stores it in memory
+// Input: PID - Process ID, Address - Memory address to store the word
+// Implementation:
+//   - Acquire the lock on the terminal device using the Acquire_Terminal() function
+//   - Read the word from the terminal using the read statement
+//   - Set process state to (WAIT_TERMINAL, -)
+//   - Call switch_context() to yield execution to another process
+//   - Copy the word from the Input Buffer of the Process Table to the specified memory address
+//   - Return after completing the read operation
+if (functionNumber == 4) then
+    alias word R3;
+
+    multipush(R0, R1, R2, R3);
+    functionNumber = 8;
+    call RESOURCE_MANAGER;
+    multipop(R0, R1, R2, R3);
+    //breakpoint;
+    read;
+    //breakpoint;
+    [PROCESS_TABLE + (currentPID * 16) + 4] = WAIT_TERMINAL;
+    
+    multipush(R0, R1, R2, R3);
+    call SCHEDULER;
+    multipop(R0, R1, R2, R3);
+
+    alias physicalAddress R4;
+    physicalAddress = [PTBR + 2 * ((word)/512)] * 512 + (word)%512;
+    [physicalAddress] = [PROCESS_TABLE + (currentPID*16) + 8];
+endif;
+return;

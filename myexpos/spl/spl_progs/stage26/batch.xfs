@@ -1,31 +1,31 @@
 fdisk
 load --os $HOME/myexpos/spl/spl_progs/stage26/os_startup.xsm
 load --library $HOME/myexpos/expl/library.lib
-load --module 0 $HOME/myexpos/spl/spl_progs/stage23/MOD0.xsm
+load --module 0 $HOME/myexpos/spl/spl_progs/stage26/MOD0_resource_manager.xsm
 load --module 1 $HOME/myexpos/spl/spl_progs/stage26/MOD1_process_manager.xsm
 load --module 2 $HOME/myexpos/spl/spl_progs/stage26/MOD2_memory_manager.xsm
 load --module 3 $HOME/myexpos/spl/spl_progs/stage26/MOD3_file_manager.xsm
-load --module 4 $HOME/myexpos/spl/spl_progs/stage23/MOD4.xsm
-load --module 5 $HOME/myexpos/spl/spl_progs/stage23/scheduler.xsm
+load --module 4 $HOME/myexpos/spl/spl_progs/stage26/MOD4_device_manager.xsm
+load --module 5 $HOME/myexpos/spl/spl_progs/stage26/MOD5_scheduler.xsm
 load --module 7 $HOME/myexpos/spl/spl_progs/stage26/MOD7_boot_module.xsm
-load --int=timer $HOME/myexpos/spl/spl_progs/stage23/timer.xsm
-load --int=console $HOME/myexpos/spl/spl_progs/stage23/console_interrupt.xsm
-load --int=disk $HOME/myexpos/spl/spl_progs/stage23/disk_interrupt.xsm
-load --int=4 $HOME/myexpos/spl/spl_progs/stage23/INT4.xsm
+load --int=timer $HOME/myexpos/spl/spl_progs/stage26/timer.xsm
+load --int=console $HOME/myexpos/spl/spl_progs/stage26/console.xsm
+load --int=disk $HOME/myexpos/spl/spl_progs/stage26/disk.xsm
+load --int=4 $HOME/myexpos/spl/spl_progs/stage26/INT4.xsm
 load --int=5 $HOME/myexpos/spl/spl_progs/stage26/INT5.xsm
-load --int=6 $HOME/myexpos/spl/spl_progs/stage23/INT6.xsm
+load --int=6 $HOME/myexpos/spl/spl_progs/stage26/INT6.xsm
 load --int=7 $HOME/myexpos/spl/spl_progs/stage26/INT7.xsm
-load --int=8 $HOME/myexpos/spl/spl_progs/stage23/INT8.xsm
-load --int=9 $HOME/myexpos/spl/spl_progs/stage23/INT9.xsm
-load --int=10 $HOME/myexpos/spl/spl_progs/stage23/INT10.xsm
-load --int=11 $HOME/myexpos/spl/spl_progs/stage23/INT11.xsm
+load --int=8 $HOME/myexpos/spl/spl_progs/stage26/INT8.xsm
+load --int=9 $HOME/myexpos/spl/spl_progs/stage26/INT9.xsm
+load --int=10 $HOME/myexpos/spl/spl_progs/stage26/INT10.xsm
+load --int=11 $HOME/myexpos/spl/spl_progs/stage26/INT11.xsm
 load --int=12 $HOME/myexpos/spl/spl_progs/stage26/INT12.xsm
-load --int=13 $HOME/myexpos/spl/spl_progs/stage23/INT13.xsm
-load --int=14 $HOME/myexpos/spl/spl_progs/stage23/INT14.xsm
+load --int=13 $HOME/myexpos/spl/spl_progs/stage26/INT13.xsm
+load --int=14 $HOME/myexpos/spl/spl_progs/stage26/INT14.xsm
 load --int=15 $HOME/myexpos/spl/spl_progs/stage26/INT15.xsm
 load --int=16 $HOME/myexpos/spl/spl_progs/stage26/INT16.xsm
 load --int=17 $HOME/myexpos/spl/spl_progs/stage26/INT17.xsm
-load --exhandler $HOME/myexpos/spl/spl_progs/stage23/EXHANDLER.xsm 
+load --exhandler $HOME/myexpos/spl/spl_progs/stage26/exhandler.xsm 
 load --idle $HOME/myexpos/expl/expl_progs/shellprogs/idle.xsm 
 load --shell $HOME/myexpos/expl/expl_progs/shellprogs/shell.xsm 
 load --init $HOME/myexpos/expl/expl_progs/shellprogs/login.xsm 
@@ -41,3 +41,6 @@ load --exec $HOME/myexpos/expl/expl_progs/shellprogs/touch.xsm
 load --exec $HOME/myexpos/expl/expl_progs/shellprogs/help.xsm
 load --exec $HOME/myexpos/expl/expl_progs/shellprogs/echo.xsm
 load --exec $HOME/myexpos/expl/expl_progs/stage25/assg1.xsm
+load --exec $HOME/myexpos/expl/expl_progs/stage25/assg2.xsm
+load --exec $HOME/myexpos/expl/expl_progs/stage25/assg3.xsm
+load --exec $HOME/myexpos/expl/expl_progs/stage25/assg4.xsm
