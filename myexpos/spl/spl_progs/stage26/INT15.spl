@@ -79,6 +79,6 @@ else
     call DEVICE_MANAGER;
     multipop(R0, R1, R2);
     
-    print "Bye bye :)";
+    print "Power Off";
     halt;
 endif;

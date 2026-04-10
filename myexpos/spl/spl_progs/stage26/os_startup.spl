@@ -1,126 +1,126 @@
 // loading exception handler from disk to memory
-loadi (2, 15);
-loadi (3, 16);
+loadi(2,15);
+loadi(3,16);
 
 // loading timer interrupt from disk to memory
-loadi (4, 17);
-loadi (5, 18);
+loadi(4,17);
+loadi(5,18);
 
 // loading disk interrupt from disk to memory
-loadi (6, 19);
-loadi (7, 20);
+loadi(6,19);
+loadi(7,20);
 
 // loading console interrupt from disk to memory
-loadi (8, 21);
-loadi (9, 22);
+loadi(8,21);
+loadi(9,22);
 
 // loading int 4 from disk to memory
-loadi (10, 23);
-loadi (11, 24);
+loadi(10,23);
+loadi(11,24);
 
 // loading int 5 from disk to memory
-loadi (12, 25);
-loadi (13, 26);
+loadi(12,25);
+loadi(13,26);
 
 // loading int 6 from disk to memory
-loadi (14, 27);
-loadi (15, 28);
+loadi(14,27);
+loadi(15,28);
 
 // loading int 7 from disk to memory
-loadi (16, 29);
-loadi (17, 30);
+loadi(16,29);
+loadi(17,30);
 
 // loading int 8 from disk to memory
-loadi (18, 31);
-loadi (19, 32);
+loadi(18,31);
+loadi(19,32);
 
 // loading int 9 from disk to memory
-loadi (20, 33);
-loadi (21, 34);
+loadi(20,33);
+loadi(21,34);
 
 // loading int 10 from disk to memory
-loadi (22, 35);
-loadi (23, 36);
+loadi(22,35);
+loadi(23,36);
 
 // loading int 11 from disk to memory
-loadi (24, 37);
-loadi (25, 38);
+loadi(24,37);
+loadi(25,38);
 
 // loading int 12 from disk to memory
-loadi (26, 39);
-loadi (27, 40);
+loadi(26,39);
+loadi(27,40);
 
 // loading int 13 from disk to memory
-loadi (28, 41);
-loadi (29, 42);
+loadi(28,41);
+loadi(29,42);
 
 // loading int 14 from disk to memory
-loadi (30, 43);
-loadi (31, 44);
+loadi(30,43);
+loadi(31,44);
 
 // loading int 15 from disk to memory
-loadi (32, 45);
-loadi (33, 46);
+loadi(32,45);
+loadi(33,46);
 
 // loading int 16 from disk to memory
-loadi (34, 47);
-loadi (35, 48);
+loadi(34,47);
+loadi(35,48);
 
 // loading int 17 from disk to memory
-loadi (36, 49);
-loadi (37, 50);
+loadi(36,49);
+loadi(37,50);
 
 // loading mod 0 from disk to memory
-loadi (40, 53);
-loadi (41, 54);
+loadi(40,53);
+loadi(41,54);
 
 // loading mod 1 from disk to memory
-loadi (42, 55);
-loadi (43, 56);
+loadi(42,55);
+loadi(43,56);
 
 // loading mod 2 from disk to memory
-loadi (44, 57);
-loadi (45, 58);
+loadi(44,57);
+loadi(45,58);
 
 // loading mod 3 from disk to memory
-loadi (46, 59);
-loadi (47, 60);
+loadi(46,59);
+loadi(47,60);
 
 // loading mod 4 from disk to memory
-loadi (48, 61);
-loadi (49, 62);
+loadi(48,61);
+loadi(49,62);
 
 // loading mod 5 from disk to memory
-loadi (50, 63);
-loadi (51, 64);
+loadi(50,63);
+loadi(51,64);
 
 // loading mod 7 from disk to memory
-loadi (54, 67);
-loadi (55, 68);
+loadi(54,67);
+loadi(55,68);
 
 // loading inode table from disk to memory
-loadi (59, 3);
-loadi (60, 4);
+loadi(59,3);
+loadi(60,4);
 
 // loading DISK_FREE_LIST from disk to memory
-loadi(61, 2);
+loadi(61,2);
 
 // loading root file from disk to memory
-loadi(62, 5);
+loadi(62,5);
 
 // loading library code from disk to memory
-loadi (63, 13);
-loadi (64, 14);
+loadi(63,13);
+loadi(64,14);
 
 // loading init program from disk to memory
-loadi (65, 7);
+loadi(65,7);
 
 // loading shell program from disk to memory
-loadi (67, 9);
-loadi (68, 10);
+loadi(67,9);
+loadi(68,10);
 
 // loading the idle code from disk to memory
-loadi (69, 11);
+loadi(69,11);
 
 // setting SP to physical address of kernal IDLE stack
 SP = 82 * 512 - 1;

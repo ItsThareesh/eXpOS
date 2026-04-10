@@ -12,16 +12,16 @@ returnAddress = [PTBR + 2*(userSP - 1)/512]*512 + (userSP - 1)%512;
 
 [processTable + 9] = callNumber;
 
-// --- Newusr ---  
-// Purpose: Creates a new user with a username and password.  
-// Implementation:  
-//   - Set `MODE_FLAG = 22`.  
-//   - If the user is not root or the process is not the shell, return -2.  
-//   - If the user exists, return -1.  
-//   - If no free entry in User Table, return -3.  
-//   - Encrypt password and store username & password.  
-//   - Reset `MODE_FLAG`, return 0.  
-// Called by: Root shell process.  
+// --- Newusr ---
+// Purpose: Creates a new user with a username and password.
+// Implementation:
+//   - Set `MODE_FLAG = 22`.
+//   - If the user is not root or the process is not the shell, return -2.
+//   - If the user exists, return -1.
+//   - If no free entry in User Table, return -3.
+//   - Encrypt password and store username & password.
+//   - Reset `MODE_FLAG`, return 0.
+// Called by: Root shell process.
 if (callNumber == 22) then
     // if user isnt root or process isnt shell, return -2
     if ([SYSTEM_STATUS_TABLE] != ROOT || [SYSTEM_STATUS_TABLE + 1] != 2) then
