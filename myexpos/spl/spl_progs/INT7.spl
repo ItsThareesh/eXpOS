@@ -1,0 +1,124 @@
+[PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 9] = 5;
+alias userSP R0;
+userSP = SP;
+[PROCESS_TABLE + ( [SYSTEM_STATUS_TABLE + 1] * 16) + 13] = SP;
+SP = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 11] * 512 - 1;
+alias fileDescriptor R4;
+fileDescriptor = [[PTBR + 2 * ((userSP - 4)/ 512)] * 512 + (userSP - 4) % 512];
+alias returnAddress R5;
+returnAddress = ([PTBR + 2 * ((userSP - 1) / 512)] * 512) + ((userSP - 1) % 512);
+if (fileDescriptor != -2) then
+    // --- File Write Logic ---
+    if (fileDescriptor < 0 || fileDescriptor > 7) then
+        [returnAddress] = -1;
+    else
+        alias resourceTableEntry R6;
+        resourceTableEntry = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE+1]*16) + 11]*512 + RESOURCE_TABLE_OFFSET + fileDescriptor*2;
+        if ([resourceTableEntry + 0] != FILE) then
+            [returnAddress] = -1;
+        else
+            alias openFileTableIdx R7;
+            openFileTableIdx = [resourceTableEntry + 1];
+            alias inodeIdx R8;
+            inodeIdx = [OPEN_FILE_TABLE + openFileTableIdx*4];
+            alias currentPID R9;
+            currentPID = [SYSTEM_STATUS_TABLE+1];
+            alias userID R10;
+            userID = [PROCESS_TABLE + currentPID*16 + 3];
+            // Permission check
+            if (userID != 1 && [INODE_TABLE + inodeIdx*16 + 3] != userID && [INODE_TABLE + inodeIdx*16 + 4] == 0) then
+                [returnAddress] = -3;
+            else
+                // Cannot write to EXEC or root
+                if ([INODE_TABLE + inodeIdx*16] == EXEC || inodeIdx == INODE_ROOT) then
+                    [returnAddress] = -3;
+                else
+                    multipush(R0, R4, R5, R6, R7, R8, R9, R10);
+                    R1 = 4; // Acquire Inode
+                    R3 = inodeIdx;
+                    R2 = currentPID;
+                    call RESOURCE_MANAGER;
+                    multipop(R0, R4, R5, R6, R7, R8, R9, R10);
+                    if (R0 == -1) then
+                        [returnAddress] = -1;
+                    else
+                        alias lseek R11;
+                        lseek = [OPEN_FILE_TABLE + openFileTableIdx*4 + 2];
+                        // eXpOS MAX_FILE_SIZE is 2048 words
+                        if (lseek == 2048) then
+                            multipush(R0, R4, R5, R6, R7, R8, R9, R10, R11);
+                            R1 = 5; // Release Inode
+                            R3 = inodeIdx;
+                            R2 = currentPID;
+                            call RESOURCE_MANAGER;
+                            multipop(R0, R4, R5, R6, R7, R8, R9, R10, R11);
+                            [returnAddress] = -2;
+                        else
+                            if (lseek % 512 == 0 && lseek == [INODE_TABLE + inodeIdx*16 + 2]) then
+                                alias newBlock R12;
+                                multipush(R0, R4, R5, R6, R7, R8, R9, R10, R11);
+                                R1 = 3; // Get Free Block
+                                call MEMORY_MANAGER;
+                                newBlock = R0;
+                                multipop(R0, R4, R5, R6, R7, R8, R9, R10, R11);
+                                if (newBlock == -1) then
+                                    multipush(R0, R4, R5, R6, R7, R8, R9, R10, R11);
+                                    R1 = 5; // Release Inode
+                                    R3 = inodeIdx;
+                                    R2 = currentPID;
+                                    call RESOURCE_MANAGER;
+                                    multipop(R0, R4, R5, R6, R7, R8, R9, R10, R11);
+                                    [returnAddress] = -2;
+                                else
+                                    [INODE_TABLE + inodeIdx*16 + 8 + (lseek/512)] = newBlock;
+                                endif;
+                            endif;
+                            // Ensure block allocation didn't fail (-2) before writing
+                            if ([returnAddress] != -2) then
+                                alias blockNum R12;
+                                alias offset R13;
+                                blockNum = [INODE_TABLE + inodeIdx*16 + 8 + (lseek/512)];
+                                offset = lseek % 512;
+                                alias word R14;
+                                word = [[PTBR + 2 * ((userSP - 3) / 512)] * 512 + ((userSP - 3) % 512)];
+                                multipush(R0, R4, R5, R6, R7, R8, R9, R10, R11, R12, R13, R14);
+                                R1 = 1; // Buffered Write
+                                R2 = blockNum;
+                                R3 = offset;
+                                R4 = word;
+                                call FILE_MANAGER;
+                                multipop(R0, R4, R5, R6, R7, R8, R9, R10, R11, R12, R13, R14);
+                                if (lseek == [INODE_TABLE + inodeIdx*16 + 2]) then
+                                    [INODE_TABLE + inodeIdx*16 + 2] = [INODE_TABLE + inodeIdx*16 + 2] + 1;
+                                    [ROOT_FILE + inodeIdx*8 + 1] = [ROOT_FILE + inodeIdx*8 + 1] + 1;
+                                endif;
+                                [OPEN_FILE_TABLE + openFileTableIdx*4 + 2] = lseek + 1;
+                                multipush(R0, R4, R5, R6, R7, R8, R9, R10, R11, R12, R13, R14);
+                                R1 = 5; // Release Inode
+                                R3 = inodeIdx;
+                                R2 = currentPID;
+                                call RESOURCE_MANAGER;
+                                multipop(R0, R4, R5, R6, R7, R8, R9, R10, R11, R12, R13, R14);
+                                [returnAddress] = 0;
+                            endif;
+                        endif;
+                    endif;
+                endif;
+            endif;
+        endif;
+     endif;
+else
+    // --- Terminal Write Logic ---
+	alias word R6;
+    word = [[PTBR + 2 * ((userSP - 3) / 512)] * 512 + ((userSP - 3) % 512)];
+    multipush(R0, R4, R5, R6);
+    R1 = 3;
+    R2 = [SYSTEM_STATUS_TABLE + 1];
+    R3 = word;
+    call DEVICE_MANAGER;
+    multipop(R0, R4, R5, R6);
+    [returnAddress] = 0;
+endif;
+SP = userSP;
+[PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 9] = 0;
+ireturn;

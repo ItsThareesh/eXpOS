@@ -1,0 +1,66 @@
+alias userSP R0;
+userSP = SP;
+[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE+1]*16) + 13] = SP;
+SP = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE+1]*16) + 11]*512 - 1;
+[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE+1]*16) + 9] = 21;
+// Shutdown can only be invoked from the shell (PID 1) and by the root user
+if ([PROCESS_TABLE + ([SYSTEM_STATUS_TABLE+1]*16) + 1] != 1 || [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE+1]*16) + 3] != 1) then
+    [[PTBR + 2*((userSP-1)/512)]*512 + (userSP-1)%512] = -1;
+    [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE+1]*16) + 9] = 0;
+    SP = userSP;
+    ireturn;
+endif;
+// Terminate all other processes by calling Kill All
+multipush(R0);
+R1 = 5; 
+R2 = [SYSTEM_STATUS_TABLE+1];
+call PROCESS_MANAGER;
+multipop(R0);
+// Commit all dirty memory buffers to disk
+alias bufferIdx R1;
+bufferIdx = 0;
+while (bufferIdx < MAX_BUFFER) do
+    if ([BUFFER_TABLE + bufferIdx*4] != -1 && [BUFFER_TABLE + bufferIdx*4 + 1] == 1) then
+        multipush(R0, R1);
+        
+        R2 = [SYSTEM_STATUS_TABLE+1];
+        R3 = 71 + bufferIdx;
+        R4 = [BUFFER_TABLE + bufferIdx*4];
+        R1 = 1;
+	call DEVICE_MANAGER;
+        multipop(R0, R1);
+    endif;
+    bufferIdx = bufferIdx + 1;
+endwhile;
+// Store Inode Table back to disk
+multipush(R0);
+R1 = 1; // Disk Store
+R2 = [SYSTEM_STATUS_TABLE+1];
+R3 = 59;
+R4 = 3;
+call DEVICE_MANAGER;
+multipop(R0);
+multipush(R0);
+R1 = 1;
+R2 = [SYSTEM_STATUS_TABLE+1];
+R3 = 60;
+R4 = 4;
+call DEVICE_MANAGER;
+multipop(R0);
+// Store Root File back to disk
+multipush(R0);
+R1 = 1;
+R2 = [SYSTEM_STATUS_TABLE+1];
+R3 = 62;
+R4 = 5;
+call DEVICE_MANAGER;
+multipop(R0);
+// Store Disk Free List back to disk
+multipush(R0);
+R1 = 1;
+R2 = [SYSTEM_STATUS_TABLE+1];
+R3 = 61;
+R4 = 2;
+call DEVICE_MANAGER;
+multipop(R0);
+halt;

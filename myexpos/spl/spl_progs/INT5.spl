@@ -1,0 +1,136 @@
+alias userSP R0;
+userSP = SP;
+[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE+1]*16) + 13] = SP;
+SP = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE+1]*16) + 11]*512 - 1;
+alias syscallNum R1;
+syscallNum = [[PTBR + 2*(userSP-5)/512]*512 + (userSP-5)%512];
+[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE+1]*16) + 9] = syscallNum;
+alias returnAddress R2;
+returnAddress = [PTBR + 2*(userSP-1)/512]*512 + (userSP-1)%512;
+// --- Open System Call ---
+if (syscallNum == 2) then
+    alias idx R3;
+    idx = 0;
+    alias resourceTable R4;
+    resourceTable = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE+1]*16) + 11]*512 + RESOURCE_TABLE_OFFSET;
+    while (idx < 8) do
+        if ([resourceTable + idx * 2 + 0] == -1) then
+            break;
+        endif;
+        idx = idx+1;
+    endwhile;
+    if (idx == 8) then
+        [returnAddress] = -3;
+    else
+        alias fileName R5;
+        fileName = [[PTBR + 2*(userSP-4)/512]*512 + (userSP-4)%512];
+        alias fileTableEntry R6;
+        multipush(R0, R1, R2, R3, R4, R5);
+        R1 = 3;
+        R2 = fileName;
+        call FILE_MANAGER;
+        fileTableEntry = R0;
+        multipop(R0, R1, R2, R3, R4, R5);
+        if (fileTableEntry < 0) then
+            [returnAddress] = fileTableEntry;
+        else
+            [resourceTable + idx*2 + 0] = FILE;
+            [resourceTable + idx*2 + 1] = fileTableEntry;
+            [returnAddress] = idx;
+        endif;
+    endif;
+endif;
+// --- Close System Call ---
+if (syscallNum == 3) then
+    alias fileDescriptor R3;
+    fileDescriptor = [[PTBR + 2*(userSP-4)/512]*512 + (userSP-4)%512];
+    if (fileDescriptor < 0 || fileDescriptor > 7) then
+        [returnAddress] = -1;
+    else
+        alias resourceTableEntry R4;
+        resourceTableEntry = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE+1]*16) + 11]*512 + RESOURCE_TABLE_OFFSET + fileDescriptor*2;
+        if ([resourceTableEntry + 0] != FILE) then
+            [returnAddress] = -1;
+        else
+            alias openFileTableEntry R5;
+            openFileTableEntry = [resourceTableEntry + 1];
+            multipush(R0, R1, R2, R3, R4, R5);
+            R1 = 4;
+            R2 = openFileTableEntry;
+            call FILE_MANAGER;
+            multipop(R0, R1, R2, R3, R4, R5);
+            [resourceTableEntry + 0] = -1;
+            [returnAddress] = 0;
+        endif;
+    endif;
+endif;
+// --- Seek System Call ---
+if (syscallNum == 6) then
+    alias fileDescriptor R3;
+    fileDescriptor = [[PTBR + 2*(userSP-4)/512]*512 + (userSP-4)%512];
+    alias offset R4;
+    offset = [[PTBR + 2*(userSP-3)/512]*512 + (userSP-3)%512];
+    if (fileDescriptor < 0 || fileDescriptor > 7) then
+        [returnAddress] = -1;
+    else
+        alias resourceTableEntry R5;
+        resourceTableEntry = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE+1]*16) + 11]*512 + RESOURCE_TABLE_OFFSET + fileDescriptor*2;
+        if ([resourceTableEntry + 0] != FILE) then
+            [returnAddress] = -1;
+        else
+            alias openFileTableEntry R6;
+            openFileTableEntry = [resourceTableEntry + 1];
+            
+            alias inodeIdx R7;
+            inodeIdx = [OPEN_FILE_TABLE + openFileTableEntry*4];
+            multipush(R0, R1, R2, R3, R4, R5, R6, R7);
+            R1 = 4; // Acquire Inode
+            R3 = inodeIdx;
+            R2 = [SYSTEM_STATUS_TABLE+1];
+            call RESOURCE_MANAGER;
+            multipop(R0, R1, R2, R3, R4, R5, R6, R7);
+            if (R0 == -1) then
+                [returnAddress] = -1;
+            else
+                alias lseek R8;
+                lseek = [OPEN_FILE_TABLE + openFileTableEntry*4 + 2];
+                alias fileSize R9;
+                if (inodeIdx == INODE_ROOT) then
+                    fileSize = 480;
+                else
+                    fileSize = [INODE_TABLE + inodeIdx*16 + 2];
+                endif;
+                if (lseek + offset < 0) then
+                    multipush(R0, R1, R2, R3, R4, R5, R6, R7, R8, R9);
+                    R1 = 5; // Release Inode
+                    R3 = inodeIdx;
+                    R2 = [SYSTEM_STATUS_TABLE+1];
+                    call RESOURCE_MANAGER;
+                    multipop(R0, R1, R2, R3, R4, R5, R6, R7, R8, R9);
+                    
+                    [returnAddress] = -2;
+                else
+                    if (offset == 0) then
+                        [OPEN_FILE_TABLE + openFileTableEntry*4 + 2] = 0;
+                    else
+                        if (lseek + offset > fileSize) then
+                            [OPEN_FILE_TABLE + openFileTableEntry*4 + 2] = fileSize;
+                        else
+                            [OPEN_FILE_TABLE + openFileTableEntry*4 + 2] = lseek + offset;
+                        endif;
+                    endif;
+                    multipush(R0, R1, R2, R3, R4, R5, R6, R7, R8, R9);
+                    R1 = 5; // Release Inode
+                    R3 = inodeIdx;
+                    R2 = [SYSTEM_STATUS_TABLE+1];
+                    call RESOURCE_MANAGER;
+                    multipop(R0, R1, R2, R3, R4, R5, R6, R7, R8, R9);
+                    [returnAddress] = 0;
+                endif;
+            endif;
+        endif;
+    endif;
+endif;
+[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE+1]*16) + 9] = 0;
+SP = userSP;
+ireturn;
