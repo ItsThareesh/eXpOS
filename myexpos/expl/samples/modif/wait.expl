@@ -1,46 +1,50 @@
 int main() {
     decl        
-        int temp, pid1, pid2, pid3;
+        int temp, pid1, pid2, pid3, counter;
     enddecl
     begin
-        // --- Child 1 ---
+        // --- Spawn Child 1 ---
         pid1 = exposcall("Fork");
         if (pid1 == 0) then
-            temp = exposcall("Write", -2, "C1-Start");
-            temp = exposcall("Write", -2, "C1-End");
+            temp = exposcall("Write", -2, "C1-Running");
+            counter = 0;
+            while(counter < 5000) do counter = counter + 1; endwhile;
+            temp = exposcall("Write", -2, "C1-Exiting");
             temp = exposcall("Exit");
         endif;
 
-        // --- Child 2 ---
+        // --- Spawn Child 2 ---
         pid2 = exposcall("Fork");
         if (pid2 == 0) then
-            temp = exposcall("Write", -2, "C2-Start");
-            temp = exposcall("Write", -2, "C2-End");
+            temp = exposcall("Write", -2, "C2-Running");
+            counter = 0;
+            while(counter < 10000) do counter = counter + 1; endwhile;
+            temp = exposcall("Write", -2, "C2-Exiting");
             temp = exposcall("Exit");
         endif;
 
-        // --- Child 3 ---
+        // --- Spawn Child 3 ---
         pid3 = exposcall("Fork");
         if (pid3 == 0) then
-            temp = exposcall("Write", -2, "C3-Start");
-            temp = exposcall("Write", -2, "C3-End");
+            temp = exposcall("Write", -2, "C3-Running");
+            counter = 0;
+            while(counter < 5000) do counter = counter + 1; endwhile;
+            temp = exposcall("Write", -2, "C3-Exiting");
             temp = exposcall("Exit");
         endif;
 
-        // --- Parent Process ---
-        // At this point, 3 children are running (or finished).
-        // The parent will now wait for each one.
-
-        temp = exposcall("Write", -2, "P-Wait-C1");
+        // --- Parent Process (P1) Testing ---
+        // The parent will only wait for the first child (pid1).
+        temp = exposcall("Write", -2, "P-Waiting-C1");
+        
+        // This is your test point for the modified Wait system call
         temp = exposcall("Wait", pid1);
         
-        temp = exposcall("Write", -2, "P-Wait-C2");
-        temp = exposcall("Wait", pid2);
-        
-        temp = exposcall("Write", -2, "P-Wait-C3");
-        temp = exposcall("Wait", pid3);
+        // If your modification works, P1 should print this 
+        // IMMEDIATELY after C1 prints "C1-Exiting"
+        temp = exposcall("Write", -2, "P-Woke-Up");
 
-        temp = exposcall("Write", -2, "All-Done");
+        temp = exposcall("Write", -2, "Test-Complete");
         temp = exposcall("Exit");
         
         return 0;
