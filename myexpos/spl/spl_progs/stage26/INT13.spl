@@ -1,0 +1,105 @@
+alias userSP R5;
+alias processTable R6;
+alias resourceTable R7;
+alias syscallNumber R1;
+userSP = SP;
+
+processTable = PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16);
+resourceTable = [processTable + 11] * 512 + RESOURCE_TABLE_OFFSET;
+
+// storing user stack pointer in process table
+[processTable + 13] = SP;
+// setting stack pointer to kernel stack
+SP = [processTable + 11] * 512 - 1;
+
+// getting the system call number from the top of the stack
+syscallNumber = [[PTBR + 2 * ((userSP - 5) / 512)] * 512 + (userSP - 5) % 512];
+
+// setting the system call number
+[processTable + 9] = syscallNumber;
+
+// --- Semget System Call ---
+// Purpose: Obtains a binary semaphore for the process
+// Input: None
+// Output:
+//   - Returns a semaphore descriptor (SEMID) on success
+//   - Returns -1 if process has reached its resource limit
+//   - Returns -2 if the maximum number of semaphores is reached
+// Implementation:
+//   - Set MODE_FLAG in Process Table to 17 and switch to kernel stack
+//   - Find a free entry in the Per Process Resource Table (Semaphore Descriptor)
+//   - If no free entry, return -1
+//   - Mark entry as a semaphore resource (Resource Identifier = 1)
+//   - Call acquire_semaphore() to obtain a semaphore from Semaphore Table
+//   - If no free semaphores, return -2
+//   - Store the Semaphore Table index in Per Process Resource Table
+//   - Restore USER SP from Process Table and reset MODE_FLAG
+//   - Return the Semaphore Descriptor
+if (syscallNumber == 17) then 
+    alias counter R2;
+    counter = 0;
+    // iterate through Per Process Resource Table -> its the last 16 words of User Area Page
+
+    while([resourceTable + counter * 2] != -1 && counter < 8) do 
+        counter = counter + 1;
+    endwhile;
+
+    if (counter == 8) then //no space left in pre process resource table
+        print "SEMGETERR";
+        [[PTBR + 2*((userSP-1)/512)]*512 + (userSP-1)%512] = -1;
+    else
+        multipush(R1, R2, R5);
+        R1 = 6;
+        R2 = [SYSTEM_STATUS_TABLE+1];
+        call RESOURCE_MANAGER;
+        multipop(R1, R2, R5);
+
+        if (R0 == -1) then //no semaphores left
+            print "SEMGETERR";
+            [[PTBR + 2*((userSP-1)/512)]*512 + (userSP-1)%512] = -2;
+        else
+            [resourceTable + counter * 2] = 1; //SEMAPHORE index is set to 1
+            [resourceTable + counter * 2 + 1] = R0; //sempahore id 
+            [[PTBR + 2 * ((userSP - 1) / 512)] * 512 + (userSP - 1) % 512] = counter; //return semaphore id
+        endif;
+    endif;
+endif; 
+
+// --- Semrelease System Call ---
+// Purpose: Releases a semaphore descriptor held by the process
+// Input: Semaphore Descriptor (Integer)
+// Output:
+//   - Returns 0 on success
+//   - Returns -1 if Semaphore Descriptor is invalid
+// Implementation:
+//   - Set MODE_FLAG in Process Table to 18 and switch to kernel stack
+//   - Validate the Semaphore Descriptor in Per Process Resource Table
+//   - If invalid, return -1
+//   - Call release_semaphore() to free the semaphore
+//   - Invalidate Per Process Resource Table entry (set to -1)
+//   - Restore USER SP from Process Table and reset MODE_FLAG
+//   - Return 0
+if (syscallNumber == 18) then 
+    alias semaphoreID R2;
+    semaphoreID = [[PTBR + 2*((userSP-4)/512)]*512 + (userSP-4)%512];
+    if (semaphoreID < 0 || semaphoreID > 7 || [resourceTable + 2 * semaphoreID] != 1) then 
+        print "SEMRELERR";
+        [[PTBR + 2 * ((userSP - 1) / 512)] * 512 + (userSP - 1) % 512] = -1;
+    else
+        multipush(R1, R2, R5);
+        R1 = 7;
+        R2 = [resourceTable + 2 * semaphoreID + 1];
+        R3 = [SYSTEM_STATUS_TABLE+1];
+        call RESOURCE_MANAGER;
+        multipop(R1, R2, R5);
+
+        [resourceTable + 2 * semaphoreID] = -1;
+        [resourceTable + 2 * semaphoreID + 1] = -1;
+        [[PTBR + 2 * ((userSP - 1) / 512)] * 512 + (userSP - 1) % 512] = 0;
+    endif;
+endif;
+
+[processTable + 9] = 0;
+SP = [processTable + 13];
+breakpoint;
+ireturn;

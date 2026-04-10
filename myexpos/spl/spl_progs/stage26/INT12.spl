@@ -1,0 +1,61 @@
+// --- Logout ---  
+// Purpose: Logs out the current user, terminating all user processes and waking up the login process.  
+// Implementation:  
+//   - Set `MODE_FLAG = 28` (logout system call).  
+//   - Switch to Kernel Stack, save SP, and set it to User Area Page.  
+//   - If the process is not the shell (PID ≠ 2), return -1.  
+//   - Call `kill_all()` to terminate all user processes except the shell.  
+//   - Mark the shell process as `TERMINATED`.  
+//   - Reset shell’s stack and `USERSP` to prepare for the next login.  
+//   - Wake up the Login process by setting its state to `READY`.  
+//   - Reset `CURRENT_USER_ID` to 0 (kernel).  
+//   - Perform `context_switch()` and return.  
+// Called by: Shell process (PID = 2).  
+alias userSP R0;
+alias processTable R1;
+alias returnAddress R2;
+userSP = SP;
+
+processTable = PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16);
+returnAddress = [PTBR + 2*(userSP-1)/512]*512 + (userSP-1)%512;
+
+// setting the mode flag
+[processTable + 9] = 28;
+// storing user stack pointer in process table
+[processTable + 13] = SP;
+// setting stack pointer to kernel stack
+SP = [processTable + 11]*512 - 1;
+
+// check if the PID is not 2 (shell)
+if ([SYSTEM_STATUS_TABLE + 1] != 2) then
+    [returnAddress] = -2;
+else
+    // call kill all to kill all user processes except the shell
+    multipush(R0, R1);
+    R1 = 5;
+    R2 = [SYSTEM_STATUS_TABLE + 1];
+    call PROCESS_MANAGER;
+    multipush(R0, R1);
+
+    // set state of current process (shell) to terminated
+    [PROCESS_TABLE + 32 + 4] = TERMINATED;
+
+    // reset entry poinr and place is at beginning of stack
+    [[PTBR + 16]*512] = [[PTBR + 8]*512 + 1]; 
+    // wake up the login process
+    [PROCESS_TABLE + 16 + 4] = READY;
+    // entry point at 4096, top of stack
+    [PROCESS_TABLE + 32 + 13] = 8*512;
+    // set current user id to kernal
+    [SYSTEM_STATUS_TABLE] = 0;
+
+    // call scheduler
+    multipush(R0, R1);
+    call SCHEDULER;
+    multipop(R0, R1);
+endif;
+
+SP = userSP;
+[processTable + 9] = 0;
+
+ireturn;

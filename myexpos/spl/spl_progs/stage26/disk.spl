@@ -1,0 +1,25 @@
+// breakpoint;
+// saving the current value of stack pointer to process table
+// rewriting the SP to kernel stack base
+[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE+1]*16) + 13] = SP;
+SP = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE+1]*16) + 11]*512 - 1;
+
+backup;
+
+[DISK_STATUS_TABLE + 0] = 0;
+alias counter R0;
+counter = 1;
+
+// set any process that is WAIT_DISK to READY
+while (counter < MAX_PROC_NUM) do
+    if ([PROCESS_TABLE + counter*16 + 4] == WAIT_DISK) then
+        [PROCESS_TABLE + counter*16 + 4] = READY;
+    endif;
+    counter = counter+1;
+endwhile;
+
+restore;
+
+SP = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE+1]*16) + 13];
+// breakpoint;
+ireturn;

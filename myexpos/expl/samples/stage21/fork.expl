@@ -1,11 +1,11 @@
 int main() {
     decl 
-        int temp;
+        int temp, temp1, temp2, temp3;
     enddecl
     begin
-        temp = exposcall("Fork");
-        temp = exposcall("Fork");
-        temp = exposcall("Fork");
+        temp1 = exposcall("Fork");
+        temp2 = exposcall("Fork");
+        temp3 = exposcall("Fork");
         temp = exposcall("Exec", "pid.xsm");
         return 0;
     end

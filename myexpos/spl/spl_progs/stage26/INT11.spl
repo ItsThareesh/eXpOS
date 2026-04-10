@@ -1,0 +1,92 @@
+alias userSP R5;
+userSP = SP;
+
+// storing user stack pointer in process table
+[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE+1]*16) + 13] = SP;
+// setting stack pointer to kernel stack
+SP = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE+1]*16) + 11]*512 - 1;
+
+// getting the system call number from the top of the stack
+alias syscallNumber R1;
+syscallNumber = [[PTBR + 2*((userSP-5)/512)]*512 + (userSP-5)%512];
+
+[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE+1]*16) + 9] = syscallNumber;
+
+// --- GetPID System Call (Syscall 11) ---
+// Purpose: Returns the process identifier (PID) of the invoking process.
+// Output: PID of the invoking process
+// Implementation:
+//   - Retrieves PID from SYSTEM_STATUS_TABLE+1
+//   - Stores PID at top of the user stack
+if (syscallNumber == 11) then 
+    [[PTBR + 2*((userSP-1)/512)]*512 + (userSP-1)%512] = [SYSTEM_STATUS_TABLE+1];
+endif;
+
+// --- GetPPID System Call (Syscall 12) ---
+// Purpose: Returns the parent process identifier (PPID) of the calling process.
+// Output: PPID of the invoking process
+// Implementation:
+//   - Retrieves PPID from the process table
+//   - Stores PPID at top of the user stack
+if (syscallNumber == 12) then 
+    // return the parents PID of the calling function
+    [[PTBR + 2*((userSP-1)/512)]*512 + (userSP-1)%512] = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE+1]*16) + 2];
+endif;
+
+// --- Wait System Call (Syscall 13) ---
+// Purpose: Blocks the current process until the specified process exits or signals.
+// Input: PID of the process to wait for (from user stack)
+// Output: 0 on success, -1 if waiting for self or invalid PID
+// Implementation:
+//   - Retrieves target PID from user stack
+//   - Checks if the PID is valid or self-waiting (returns -1 if invalid)
+//   - Updates Process Table status to (WAIT_PROCESS, target PID)
+//   - Calls scheduler and resumes when signaled/exited
+//   - Returns 0 on success
+if (syscallNumber == 13) then 
+    // get PID from the stack
+    alias pid R2;
+    pid = [[PTBR + 2*((userSP-4)/512)]*512 + (userSP-4)%512];
+
+    // if PID is waiting for the invoking process (ie itself) or looking for non existing/terminated process -> return -1
+    if (pid == [SYSTEM_STATUS_TABLE + 1] || [PROCESS_TABLE + pid * 16 + 4] == TERMINATED || pid < 0 || pid >= 16) then 
+        [[PTBR + 2*((userSP-1)/512)]*512 + (userSP-1)%512] = -1;
+    else
+        // set the status to (WAIT_PROCESS, PID) in the System status table
+        [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE+1]*16) + 4] = WAIT_PROCESS;
+        [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE+1]*16) + 5] = pid;
+
+        // invoke scheduler
+        multipush(R1, R2, R5);
+        call SCHEDULER;
+        multipop(R1, R2, R5);
+
+        // set return value
+        [[PTBR + 2*((userSP-1)/512)] + (userSP-1)%512] = 0;
+    endif;
+endif;
+
+// --- Signal System Call (Syscall 14) ---
+// Purpose: Wakes up all processes waiting for the current process.
+// Output: 0 on success
+// Implementation:
+//   - Iterates through process table
+//   - If process is in WAIT_PROCESS state and waiting for invoking PID, changes its status to READY
+//   - Does not fail; always succeeds
+if (syscallNumber == 14) then 
+    alias counter R2;
+    counter = 0;
+
+    while(counter < MAX_PROC_NUM) do
+        // if the state is WAIT_PROCESS and the PID wating is the PID matching in the SYSTEM_STATUS_TABLE, signal it to wake it up
+        // the WAIT_PROCESS state is a 2 word entity (WAIT_PROCESS, PID) so we get 4th postion to be WAIT_PROCESS and 5th postion to be the PID of the waiting process
+        if([PROCESS_TABLE + counter * 16 + 4] == WAIT_PROCESS && [PROCESS_TABLE + counter * 16 + 5] == [SYSTEM_STATUS_TABLE + 1]) then
+            [PROCESS_TABLE + counter * 16 + 4] = READY;
+        endif;
+        counter = counter + 1;
+    endwhile;
+endif;
+
+SP = userSP;
+[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE+1]*16) + 9] = 0;
+ireturn;
